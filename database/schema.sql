@@ -1,6 +1,4 @@
 -- ENUM TYPES
-CREATE TYPE gender_enum AS ENUM ('male', 'female');
-
 CREATE TYPE report_status_enum AS ENUM ('active', 'completed', 'expired');
 
 CREATE TYPE request_status_enum AS ENUM ('pending', 'accepted', 'rejected');
@@ -9,9 +7,9 @@ CREATE TYPE request_status_enum AS ENUM ('pending', 'accepted', 'rejected');
 -- USER
 CREATE TABLE Users (
     user_id SERIAL PRIMARY KEY,
-    name VARCHAR(100),
-    gender gender_enum,
-    contact_number BIGINT CHECK (contact_number > 0)
+    name VARCHAR(100) NOT NULL,
+    student_id NUMERIC(9, 0) UNIQUE NOT NULL CHECK (student_id BETWEEN 100000000 AND 999999999),
+    contact_number BIGINT CHECK (contact_number BETWEEN 1000000000 AND 9999999999)
 );
 
 
@@ -19,10 +17,12 @@ CREATE TABLE Users (
 CREATE TABLE Auth (
     auth_id SERIAL PRIMARY KEY,
     user_id INT UNIQUE NOT NULL,
-    password VARCHAR(100) NOT NULL,
-    email VARCHAR(100) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    last_login TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
 );
+
 
 
 -- NOTIFICATION

@@ -4,6 +4,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs.jsx";
+import { supabase } from "../../supabase";
 
 export function AuthForm({ onLogin }) {
   const [loginEmail, setLoginEmail] = useState("");
@@ -11,64 +12,89 @@ export function AuthForm({ onLogin }) {
   const [signupEmail, setSignupEmail] = useState("");
   const [signupName, setSignupName] = useState("");
   const [signupStudentId, setSignupStudentId] = useState("");
+  const [signupContact, setSignupContact] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState("login");
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
-    // Get stored users
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    const user = users.find(
-      (u) => u.email === loginEmail && u.password === loginPassword
-    )
-    if (user) {
-      const { password, ...userWithoutPassword } = user;
-      onLogin(userWithoutPassword);
-    } else {
-      setError("Invalid email or password");
+    try {
+      // console.log('Attempting login with:', { user_email: loginEmail, user_password: loginPassword });
+      const { data, error } = await supabase.rpc('user_login', {
+        user_email: loginEmail,
+        user_password: loginPassword,
+      });
+
+       // console.log('RPC Response - Data:', data);
+       // console.log('RPC Response - Error:', error);
+
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
+      if (data && data.length > 0 && data[0].success) {
+        // console.log('Login successful, calling onLogin with:', { id: data[0].user_id, email: loginEmail });
+        onLogin({ id: data[0].user_id, email: loginEmail });
+      } else {
+        setError(data && data.length > 0 ? data[0].message : 'Invalid email or password.');
+        // console.log('Login failed:', data && data.length > 0 ? data[0].message : 'Invalid email or password');
+      }
+    } catch (err) {
+      setError(err.message);
     }
   };
 
-  const handleSignup = (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
     setError("");
 
-    if (!signupEmail || !signupName || !signupStudentId || !signupPassword) {
+    if (!signupEmail || !signupName || !signupStudentId || !signupContact || !signupPassword) {
       setError("All fields are required");
       return;
     }
 
-    // Get stored users
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-
-    // Check if email already exists
-    if (users.find((u) => u.email === signupEmail)) {
-      setError("Email already registered");
+    const parsedStudentId = parseInt(signupStudentId, 10);
+    if (isNaN(parsedStudentId)) {
+      setError("Student ID must be a valid number.");
       return;
     }
 
-    // Check if student ID already exists
-    if (users.find((u) => u.studentId === signupStudentId)) {
-      setError("Student ID already registered");
+    const parsedContact = parseInt(signupContact, 10);
+    if (isNaN(parsedContact)) {
+      setError("Contact Number must be a valid number.");
       return;
     }
 
-    // Create new user
-    const newUser = {
-      id: Date.now().toString(),
-      email: signupEmail,
-      name: signupName,
-      studentId: signupStudentId,
-      password: signupPassword,
-    };
+    try {
+      const { data, error } = await supabase.rpc('user_signup', {
+        user_name: signupName,
+        user_contact: parsedContact,
+        user_email: signupEmail,
+        user_student_id: parsedStudentId, 
+        user_password: signupPassword,
+      });
 
-    users.push(newUser);
-    localStorage.setItem("users", JSON.stringify(users));
+      if (error) {
+        setError(error.message);
+        return;
+      }
 
-    const { password, ...userWithoutPassword } = newUser;
-    onLogin(userWithoutPassword);
+      // If signup is successful, move to the login tab and clear signup form
+      setSignupName("");
+      setSignupEmail("");
+      setSignupStudentId("");
+      setSignupContact("");
+      setSignupPassword("");
+      setError("Signup successful! Please log in.");
+      setActiveTab("login");
+
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return (
@@ -81,7 +107,7 @@ export function AuthForm({ onLogin }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="login">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -138,6 +164,17 @@ export function AuthForm({ onLogin }) {
                     placeholder="student@university.edu"
                     value={signupEmail}
                     onChange={(e) => setSignupEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-contact">Contact Number</Label>
+                  <Input
+                    id="signup-contact"
+                    type="number"
+                    placeholder="e.g., 1234567890"
+                    value={signupContact}
+                    onChange={(e) => setSignupContact(e.target.value)}
                     required
                   />
                 </div>
