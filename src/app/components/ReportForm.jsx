@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
@@ -6,35 +6,7 @@ import { Textarea } from "@/app/components/ui/textarea.jsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select.jsx";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Calendar } from "lucide-react";
-
-
-
-const categories = [
-  "Electronics",
-  "Clothing",
-  "Books & Stationery",
-  "Bags & Backpacks",
-  "Keys",
-  "Wallets & Purses",
-  "Jewelry & Accessories",
-  "Sports Equipment",
-  "ID Cards & Documents",
-  "Other",
-];
-
-const locations = [
-  "Library",
-  "Student Center",
-  "Cafeteria",
-  "Gym",
-  "Parking Lot",
-  "Lecture Hall A",
-  "Lecture Hall B",
-  "Lab Building",
-  "Dormitory",
-  "Sports Field",
-  "Other",
-];
+import { supabase } from "../../supabase";
 
 export function ReportForm({ type, userId, onSubmit, onCancel }) {
   const [itemName, setItemName] = useState("");
@@ -42,26 +14,78 @@ export function ReportForm({ type, userId, onSubmit, onCancel }) {
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [date, setDate] = useState("");
-  const [contactInfo, setContactInfo] = useState("");
+  const [imageFiles, setImageFiles] = useState([]);
+  const [locations, setLocations] = useState([]);
+  const [tags, setTags] = useState([]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    const report = {
-      id: Date.now().toString(),
-      type,
-      itemName,
-      category,
-      description,
-      location,
-      date,
-      contactInfo,
-      userId,
-      status: "active",
-      createdAt: new Date().toISOString(),
+  useEffect(() => {
+    const fetchLocations = async () => {
+      const { data, error } = await supabase.rpc('get_locations');
+      if (error) {
+        console.error('Error fetching locations:', error);
+      } else {
+        setLocations(data);
+      }
     };
 
-    onSubmit(report);
+    const fetchTags = async () => {
+      const { data, error } = await supabase.rpc('get_tags');
+      if (error) {
+        console.error('Error fetching tags:', error);
+      } else {
+        setTags(data);
+      }
+    };
+
+    fetchLocations();
+    fetchTags();
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const imageUrls = [];
+    for (const file of imageFiles) {
+      const fileName = `${userId}/${Date.now()}_${file.name}`;
+      const { data, error } = await supabase.storage
+        .from("report-images")
+        .upload(fileName, file);
+
+      if (error) {
+        console.error("Error uploading image:", error);
+        continue;
+      }
+      
+      const { data: { publicUrl } } = supabase.storage.from('report-images').getPublicUrl(fileName);
+      imageUrls.push(publicUrl);
+    }
+
+    const report = {
+      p_creator_id: userId,
+      p_last_location_id: parseInt(location),
+      p_title: itemName,
+      p_description: description,
+      p_lost_at: date,
+      p_tags: [parseInt(category)],
+      p_image_urls: imageUrls,
+    };
+
+    if (type === 'lost') {
+      const { data, error } = await supabase.rpc('create_lost_report', report);
+      if (error) {
+        console.error("Error creating lost report:", error);
+      } else {
+        onSubmit(data);
+      }
+    }
+    // else if (type === 'found') {
+    //   const { data, error } = await supabase.rpc('create_found_report', report);
+    //   if (error) {
+    //     console.error("Error creating found report:", error);
+    //   } else {
+    //     onSubmit(data);
+    //   }
+    // }
   };
 
   return (
@@ -97,9 +121,9 @@ export function ReportForm({ type, userId, onSubmit, onCancel }) {
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
+                {tags.map((tag) => (
+                  <SelectItem key={tag.tag_id} value={tag.tag_id.toString()}>
+                    {tag.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -128,8 +152,8 @@ export function ReportForm({ type, userId, onSubmit, onCancel }) {
               </SelectTrigger>
               <SelectContent>
                 {locations.map((loc) => (
-                  <SelectItem key={loc} value={loc}>
-                    {loc}
+                  <SelectItem key={loc.location_id} value={loc.location_id.toString()}>
+                    {loc.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -151,16 +175,14 @@ export function ReportForm({ type, userId, onSubmit, onCancel }) {
               <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-gray-400 pointer-events-none" />
             </div>
           </div>
-
+          
           <div className="space-y-2">
-            <Label htmlFor="contact">Contact Information</Label>
+            <Label htmlFor="images">Images</Label>
             <Input
-              id="contact"
-              type="text"
-              placeholder="Phone number or additional contact info"
-              value={contactInfo}
-              onChange={(e) => setContactInfo(e.target.value)}
-              required
+              id="images"
+              type="file"
+              multiple
+              onChange={(e) => setImageFiles(Array.from(e.target.files))}
             />
           </div>
 

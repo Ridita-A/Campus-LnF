@@ -51,3 +51,64 @@ BEGIN
     VALUES (new_user_id, user_email, crypt(user_password, gen_salt('bf')), NOW());
 END;
 $$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION get_lost_reports()
+RETURNS TABLE (
+    lost_id INT,
+    creator_id INT,
+    last_location_id INT,
+    title VARCHAR(50),
+    description TEXT,
+    lost_at TIMESTAMP,
+    status report_status_enum,
+    tags TEXT[],
+    image_urls TEXT[]
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        lr.lost_id,
+        lr.creator_id,
+        lr.last_location_id,
+        lr.title,
+        lr.description,
+        lr.lost_at,
+        lr.status,
+        ARRAY(SELECT t.name FROM Tags t JOIN Lost_Report_Tags lrt ON t.tag_id = lrt.category_id WHERE lrt.lost_id = lr.lost_id) AS tags,
+        ARRAY(SELECT lri.image_url FROM Lost_Report_Images lri WHERE lri.lost_id = lr.lost_id) AS image_urls
+    FROM
+        Lost_Report lr;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION get_locations()
+RETURNS TABLE (
+    location_id INT,
+    name VARCHAR(100)
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        l.location_id,
+        l.name
+    FROM
+        Location l;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_tags()
+RETURNS TABLE (
+    tag_id INT,
+    name VARCHAR(30)
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        t.tag_id,
+        t.name
+    FROM
+        Tags t;
+END;
+$$ LANGUAGE plpgsql;
