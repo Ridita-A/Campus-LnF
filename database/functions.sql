@@ -52,37 +52,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
-CREATE OR REPLACE FUNCTION get_lost_reports()
-RETURNS TABLE (
-    lost_id INT,
-    creator_id INT,
-    last_location_id INT,
-    title VARCHAR(50),
-    description TEXT,
-    lost_at TIMESTAMP,
-    status report_status_enum,
-    tags TEXT[],
-    image_urls TEXT[]
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT
-        lr.lost_id,
-        lr.creator_id,
-        lr.last_location_id,
-        lr.title,
-        lr.description,
-        lr.lost_at,
-        lr.status,
-        ARRAY(SELECT t.name FROM Tags t JOIN Lost_Report_Tags lrt ON t.tag_id = lrt.category_id WHERE lrt.lost_id = lr.lost_id) AS tags,
-        ARRAY(SELECT lri.image_url FROM Lost_Report_Images lri WHERE lri.lost_id = lr.lost_id) AS image_urls
-    FROM
-        Lost_Report lr;
-END;
-$$ LANGUAGE plpgsql;
-
-
 CREATE OR REPLACE FUNCTION get_locations()
 RETURNS TABLE (
     location_id INT,

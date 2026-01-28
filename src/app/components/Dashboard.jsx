@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from "../../supabase";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs.jsx";
@@ -18,61 +19,65 @@ export function Dashboard({ user, onLogout }) {
   const [filterCategory, setFilterCategory] = useState("all");
   const [activeTab, setActiveTab] = useState("all");
 
-  // Load reports from localStorage
   useEffect(() => {
-    const storedReports = JSON.parse(localStorage.getItem("reports") || "[]");
-    setReports(storedReports);
+    const fetchReports = async () => {
+      const { data, error } = await supabase.from('vw_lost_reports').select('*');
+
+      if (error) {
+        toast.error("Error fetching reports: " + error.message);
+        console.error("Error fetching reports: ", error);
+        return;
+      }
+      
+      const formattedReports = data.map(report => {
+        const publicImageUrls = (report.image_urls || []).map(path => {
+          if (!path) {
+            return null;
+          }
+          if (path.startsWith('http')) {
+            return path;
+          }
+          
+          const { data: publicUrlData } = supabase.storage
+            .from('lnf-images')
+            .getPublicUrl(path);
+          
+          return publicUrlData.publicUrl;
+        }).filter(Boolean);
+
+        const finalReport = {
+          id: report.lost_id,
+          userId: report.creator_id,
+          itemName: report.title,
+          description: report.description,
+          date: report.lost_at,
+          status: report.status,
+          category: report.tags && report.tags.length > 0 ? report.tags[0] : 'Other',
+          tags: report.tags || [],
+          imageUrls: publicImageUrls,
+          type: 'lost',
+          location: report.location_name,
+          userName: report.user_name,
+          userStudentId: report.user_student_id,
+          userContactNumber: report.user_contact_number,
+        };
+        
+        return finalReport;
+      });
+
+      setReports(formattedReports);
+    };
+
+    fetchReports();
   }, []);
 
-  // Save reports to localStorage
-  const saveReports = (newReports) => {
-    localStorage.setItem("reports", JSON.stringify(newReports));
-    setReports(newReports);
-  };
-
-  // Find matching items
-  const findMatches = (report) => {
-    const oppositeType = report.type === "lost" ? "found" : "lost";
-    return reports.filter((r) => {
-      if (r.type !== oppositeType || r.status !== "active") return false;
-
-      // Check if items match based on name, category, location, and date proximity
-      const nameMatch = r.itemName.toLowerCase().includes(report.itemName.toLowerCase()) ||
-        report.itemName.toLowerCase().includes(r.itemName.toLowerCase());
-      const categoryMatch = r.category === report.category;
-      const locationMatch = r.location === report.location;
-
-      // Check if dates are within 7 days of each other
-      const date1 = new Date(r.date).getTime();
-      const date2 = new Date(report.date).getTime();
-      const daysDiff = Math.abs(date1 - date2) / (1000 * 60 * 60 * 24);
-      const dateProximity = daysDiff <= 7;
-
-      return (nameMatch && categoryMatch) || (categoryMatch && locationMatch && dateProximity);
-    });
-  };
-
   const handleSubmitReport = (report) => {
-    const newReports = [...reports, report];
-    saveReports(newReports);
+    const newReportUI = { ...report, id: Date.now() }; 
+    setReports(prev => [newReportUI, ...prev]);
     setShowReportForm(null);
-
-    // Check for matches
-    const matches = findMatches(report);
-    if (matches.length > 0) {
-      toast.success(`Report submitted! Found ${matches.length} potential match(es).`);
-    } else {
-      toast.success("Report submitted successfully!");
-    }
+    toast.success("Report submitted successfully!");
   };
 
-  const handleMarkResolved = (id) => {
-    const newReports = reports.map((r) =>
-      r.id === id ? { ...r, status: "resolved" } : r
-    );
-    saveReports(newReports);
-    toast.success("Item marked as resolved!");
-  };
 
   // Filter reports
   const filteredReports = reports.filter((report) => {
@@ -202,8 +207,6 @@ export function Dashboard({ user, onLogout }) {
                     key={report.id ?? index}
                     report={report}
                     currentUserId={user.id}
-                    onMarkResolved={handleMarkResolved}
-                    matchedItems={findMatches(report)}
                   />
                 ))}
               </div>

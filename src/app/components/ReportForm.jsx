@@ -51,8 +51,8 @@ export function ReportForm({ type, userId, onSubmit, onCancel }) {
           continue;
         }
 
-        const { data } = supabase.storage.from("lnf-images").getPublicUrl(fileName);
-        if (data?.publicUrl) imageUrls.push(data.publicUrl);
+        // const { data } = supabase.storage.from("lnf-images").getPublicUrl(fileName); // Removed this line
+        imageUrls.push(fileName);
       } catch (err) {
         console.error("Unexpected upload error:", err);
       }
@@ -83,13 +83,17 @@ export function ReportForm({ type, userId, onSubmit, onCancel }) {
 
         if (!response.ok) {
           console.error('Error creating lost report:', data.error);
+          toast.error("Failed to submit report: " + (data.error || "Unknown error"));
+          onCancel(); // Close the form on backend error
         } else {
-          onSubmit(report); // use frontend report with generated ID
+          onSubmit(report); 
         }
       }
-      // handle 'found' reports here if needed
+      // handle 'found' reports here 
     } catch (err) {
       console.error('Network or API error:', err);
+      toast.error("Network or API error: " + err.message);
+      onCancel(); // Close the form on network error
     }
   };
 
