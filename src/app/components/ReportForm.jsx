@@ -5,8 +5,9 @@ import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea.jsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select.jsx";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
-import { Calendar } from "lucide-react";
+import { Calendar, Upload, Loader2 } from "lucide-react";
 import { supabase } from "../../supabase";
+import { toast } from "sonner";
 
 export function ReportForm({ type, userId, onSubmit, onCancel }) {
   const [itemName, setItemName] = useState("");
@@ -17,6 +18,7 @@ export function ReportForm({ type, userId, onSubmit, onCancel }) {
   const [imageFiles, setImageFiles] = useState([]);
   const [locations, setLocations] = useState([]);
   const [tags, setTags] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -48,81 +50,66 @@ export function ReportForm({ type, userId, onSubmit, onCancel }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    // 1. Upload images and get public URLs
-    const imageUrls = [];
-    for (const file of imageFiles) {
-      const fileName = `${type}/${Date.now()}_${file.name}`;
-      try {
-        const { error: uploadError } = await supabase.storage
-          .from("lnf-images")
-          .upload(fileName, file);
-        if (uploadError) {
-          console.error("Error uploading image:", uploadError);
-          continue;
+    try {
+      // 1. Upload images and get public URLs
+      const imageUrls = [];
+      if (imageFiles.length > 0) {
+        toast.info('Uploading images...');
+        for (const file of imageFiles) {
+          const fileName = `${type}/${Date.now()}_${file.name}`;
+          const { error: uploadError } = await supabase.storage
+            .from("lnf-images")
+            .upload(fileName, file);
+          
+          if (uploadError) {
+            console.error("Error uploading image:", uploadError);
+            continue;
+          }
+
+          const { data } = supabase.storage.from("lnf-images").getPublicUrl(fileName);
+          if (data?.publicUrl) imageUrls.push(data.publicUrl);
         }
-
-        const { data } = supabase.storage.from("lnf-images").getPublicUrl(fileName);
-        if (data?.publicUrl) imageUrls.push(data.publicUrl);
-      } catch (err) {
-        console.error("Unexpected upload error:", err);
       }
-    }
 
-    // 2. Create report object
-    const report = {
-      id: Date.now(), 
-      creator_id: userId,
-      title: itemName,
-      description,
-      tags: [parseInt(category)],
-      image_urls: imageUrls,
-    };
+      // 2. Create report object
+      const report = {
+        creator_id: userId,
+        title: itemName,
+        description,
+        tags: [parseInt(category)],
+        image_urls: imageUrls,
+      };
 
-    if (type === 'lost') {
+      if (type === 'lost') {
         report.last_location_id = parseInt(location);
         report.lost_at = new Date(date).toISOString();
-    } else if (type === 'found') {
+      } else {
         report.found_location_id = parseInt(location);
         report.found_at = new Date(date).toISOString();
-    }
-
-
-    // 3. Send to backend API
-    try {
-      if (type === 'lost') {
-        const response = await fetch('http://localhost:3000/api/lost/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(report)
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          console.error('Error creating lost report:', data.error);
-        }
-        else {
-          onSubmit(report); 
-        }
-      } else if (type === 'found') { 
-        const response = await fetch('http://localhost:3000/api/found/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(report)
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          console.error('Error creating found report:', data.error);
-        }
-        else {
-          onSubmit(report); 
-        }
       }
+
+      // 3. Send to backend API
+      const endpoint = type === 'lost' ? '/api/lost/create' : '/api/found/create';
+      const response = await fetch(`http://localhost:3000${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(report)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create report');
+      }
+
+      // Success - immediately call onSubmit without waiting
+      onSubmit(report);
     } catch (err) {
-      console.error('Network or API error:', err);
+      console.error('Error submitting report:', err);
+      toast.error(err.message || 'Failed to submit report');
+      setIsSubmitting(false);
     }
   };
 
@@ -243,8 +230,20 @@ export function ReportForm({ type, userId, onSubmit, onCancel }) {
           </div>
 
           <div className="flex gap-2 pt-4">
-            <Button type="submit" className="flex-1">Submit Report</Button>
-            <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+            <Button type="submit" className="flex-1" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="size-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <Upload className="size-4 mr-2" />
+                  Submit Report
+                </>
+              )}
+            </Button>
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>Cancel</Button>
           </div>
         </form>
       </CardContent>

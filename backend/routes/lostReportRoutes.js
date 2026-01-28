@@ -2,6 +2,17 @@ const express = require('express');
 const pool = require('../db'); 
 const router = express.Router();
 
+// GET ALL LOST REPORTS
+router.get('/', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM get_lost_reports()');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching lost reports:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // CREATE LOST REPORT
 router.post('/create', async (req, res) => {
   const {
