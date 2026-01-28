@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ItemCard } from "@/app/components/ItemCard.jsx";
 import { ReportForm } from "@/app/components/ReportForm.jsx";
 import { AuthForm } from "@/app/components/AuthForm.jsx";
+import { NotificationPanel } from "@/app/components/NotificationPanel.jsx";
 import { PlusCircle, Search, LogOut, Package } from "lucide-react";
 import { toast } from "sonner";
 
@@ -146,10 +147,13 @@ export function Dashboard({ user, onLogout }) {
                 </p>
               </div>
             </div>
-            <Button variant="outline" onClick={onLogout} className="hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-all shadow-sm">
-              <LogOut className="size-4 mr-2" />
-              Logout
-            </Button>
+            <div className="flex items-center gap-2">
+              <NotificationPanel userId={user.id} />
+              <Button variant="outline" onClick={onLogout} className="hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-all shadow-sm">
+                <LogOut className="size-4 mr-2" />
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </header>
