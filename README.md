@@ -59,9 +59,29 @@ As a result, many items remain unclaimed despite being found.
 
 ## Running the Code
 
-Run `npm install` to install the dependencies.
+### Prerequisites
+1. Run `npm install` in the root directory
+2. Run `npm install` in the `backend` directory
 
-Run `npm run dev` to start the development server, then ctrl+click on the local host link.
+### Starting the Application
+
+**For Linux/Mac users:**
+```bash
+chmod +x start.sh
+./start.sh
+```
+
+**For Windows users:**
+```powershell
+./start.ps1
+```
+
+This will start both the frontend (Vite) and backend (Express) servers simultaneously.
+
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:3000
+
+Press `Ctrl+C` to stop both servers.
 
 ---
 
