@@ -1,14 +1,18 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card.jsx";
 import { Badge } from "@/app/components/ui/badge.jsx";
 import { Button } from "@/app/components/ui/button.jsx";
-import { MapPin, Calendar, User, CheckCircle, Tag } from "lucide-react";
+import { MapPin, Calendar, User, CheckCircle, Tag, HandHeart } from "lucide-react";
 import ImageWithFallback from "@/app/components/ui/ImageWithFallback.jsx";
+import { ClaimModal } from "@/app/components/ClaimModal.jsx";
 
 export function ItemCard({ report, currentUserId }) {
   const isOwner = report.userId === currentUserId;
+  const [showClaimModal, setShowClaimModal] = useState(false);
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-200">
+    <>
+      <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-200">
       {/* Image Section */}
       {report.imageUrl && (
         <div className="relative h-48 w-full overflow-hidden bg-gray-100">
@@ -79,7 +83,38 @@ export function ItemCard({ report, currentUserId }) {
             </div>
           </div>
         )}
+
+        {/* Claim Button - Show for found items (to claim) OR lost items (to notify you found it) */}
+        {/* For FOUND items: User can claim if they lost it */}
+        {report.type === "found" && !isOwner && report.status === "active" && (
+          <Button 
+            onClick={() => setShowClaimModal(true)}
+            className="w-full mt-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-md"
+          >
+            <HandHeart className="size-4 mr-2" />
+            I Lost This Item
+          </Button>
+        )}
+        
+        {/* For LOST items: User can notify owner they found it */}
+        {report.type === "lost" && !isOwner && report.status === "active" && (
+          <Button 
+            onClick={() => setShowClaimModal(true)}
+            className="w-full mt-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md"
+          >
+            <HandHeart className="size-4 mr-2" />
+            I Found This Item
+          </Button>
+        )}
       </CardContent>
     </Card>
+
+    <ClaimModal
+      isOpen={showClaimModal}
+      onClose={() => setShowClaimModal(false)}
+      report={report}
+      userId={currentUserId}
+    />
+    </>
   );
 }
