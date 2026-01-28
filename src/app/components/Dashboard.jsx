@@ -84,6 +84,17 @@ export function Dashboard({ user, onLogout }) {
     fetchReports();
   };
 
+  const handleArchiveItem = (itemId) => {
+    // Remove the archived item from the current view
+    setReports(prevReports => 
+      prevReports.map(report => 
+        report.id === itemId 
+          ? { ...report, status: 'archived' }
+          : report
+      )
+    );
+  };
+
 
   // Filter reports
   const filteredReports = reports.filter((report) => {
@@ -95,9 +106,13 @@ export function Dashboard({ user, onLogout }) {
       activeTab === "all" ||
       (activeTab === "my-reports" && report.userId === user.id) ||
       (activeTab === "lost" && report.type === "lost") ||
-      (activeTab === "found" && report.type === "found");
+      (activeTab === "found" && report.type === "found") ||
+      (activeTab === "archived" && report.status === "archived");
 
-    return matchesSearch && matchesCategory && matchesTab;
+    // Exclude archived items from all tabs except the archived tab
+    const isNotArchived = activeTab === "archived" ? true : report.status !== "archived";
+
+    return matchesSearch && matchesCategory && matchesTab && isNotArchived;
   });
 
   const categories = [
@@ -129,27 +144,31 @@ export function Dashboard({ user, onLogout }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-50">
       {/* Header */}
-      <header className="bg-white border-b-2 border-blue-100 shadow-lg sticky top-0 z-10 backdrop-blur-sm bg-white/95">
-        <div className="max-w-7xl mx-auto px-4 py-5">
+      <header className="bg-white border-b-2 border-blue-200 shadow-xl sticky top-0 z-10 backdrop-blur-md bg-white/95">
+        <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 rounded-xl shadow-md">
-                <Package className="size-7 text-white" />
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl shadow-lg hover:scale-105 transition-transform">
+                <Package className="size-8 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+                <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
                   Campus Lost & Found
                 </h1>
-                <p className="text-sm text-gray-600 mt-0.5">
-                  Welcome back, <span className="font-semibold text-blue-600">{user.name}</span>
+                <p className="text-sm text-gray-600 mt-1 font-medium">
+                  Welcome back, <span className="font-bold text-blue-600">{user.name}</span> 👋
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <NotificationPanel userId={user.id} />
-              <Button variant="outline" onClick={onLogout} className="hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-all shadow-sm">
+              <Button 
+                variant="outline" 
+                onClick={onLogout} 
+                className="hover:bg-red-50 hover:text-red-600 hover:border-red-400 transition-all shadow-md hover:shadow-lg border-2 font-semibold"
+              >
                 <LogOut className="size-4 mr-2" />
                 Logout
               </Button>
@@ -160,38 +179,38 @@ export function Dashboard({ user, onLogout }) {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Action Buttons */}
-        <div className="flex flex-wrap gap-3 mb-6">
+        <div className="flex flex-wrap gap-4 mb-8">
           <Button 
             onClick={() => setShowReportForm("lost")} 
-            className="flex-1 sm:flex-none bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-md hover:shadow-lg transition-all"
+            className="flex-1 sm:flex-none bg-gradient-to-r from-red-500 via-red-600 to-red-700 hover:from-red-600 hover:via-red-700 hover:to-red-800 shadow-lg hover:shadow-2xl transition-all duration-300 text-white font-bold py-6 px-6 text-base group"
           >
-            <PlusCircle className="size-4 mr-2" />
+            <PlusCircle className="size-5 mr-2 group-hover:rotate-90 transition-transform duration-300" />
             Report Lost Item
           </Button>
           <Button 
             onClick={() => setShowReportForm("found")} 
-            className="flex-1 sm:flex-none bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-md hover:shadow-lg transition-all"
+            className="flex-1 sm:flex-none bg-gradient-to-r from-green-500 via-green-600 to-green-700 hover:from-green-600 hover:via-green-700 hover:to-green-800 text-white shadow-lg hover:shadow-2xl transition-all duration-300 font-bold py-6 px-6 text-base group"
           >
-            <PlusCircle className="size-4 mr-2" />
+            <PlusCircle className="size-5 mr-2 group-hover:rotate-90 transition-transform duration-300" />
             Report Found Item
           </Button>
         </div>
 
         {/* Search and Filter */}
-        <div className="bg-white p-6 rounded-xl shadow-md mb-6 border border-gray-100">
-          <div className="flex flex-col sm:flex-row gap-3">
+        <div className="bg-white p-6 rounded-2xl shadow-lg mb-8 border-2 border-gray-100 hover:border-blue-200 transition-all">
+          <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
               <Input
                 type="text"
                 placeholder="Search by item name or description..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+                className="pl-11 border-2 border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 h-12 text-base rounded-xl"
               />
             </div>
             <Select value={filterCategory} onValueChange={setFilterCategory}>
-              <SelectTrigger className="w-full sm:w-56 border-gray-200">
+              <SelectTrigger className="w-full sm:w-64 border-2 border-gray-200 h-12 text-base rounded-xl font-medium">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
@@ -208,35 +227,70 @@ export function Dashboard({ user, onLogout }) {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-6 bg-white p-1 rounded-lg shadow-sm border border-gray-200">
-            <TabsTrigger value="all" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">All Items</TabsTrigger>
-            <TabsTrigger value="lost" className="data-[state=active]:bg-red-500 data-[state=active]:text-white">Lost</TabsTrigger>
-            <TabsTrigger value="found" className="data-[state=active]:bg-green-500 data-[state=active]:text-white">Found</TabsTrigger>
-            <TabsTrigger value="my-reports" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white">My Reports</TabsTrigger>
+          <TabsList className="mb-8 bg-white p-1.5 rounded-xl shadow-lg border-2 border-gray-200">
+            <TabsTrigger 
+              value="all" 
+              className="bg-blue-50 text-blue-700 hover:bg-blue-100 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-semibold px-6 py-2.5 rounded-lg transition-all"
+            >
+              All Items
+            </TabsTrigger>
+            <TabsTrigger 
+              value="lost" 
+              className="bg-red-50 text-red-700 hover:bg-red-100 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-red-600 data-[state=active]:text-white font-semibold px-6 py-2.5 rounded-lg transition-all"
+            >
+              Lost
+            </TabsTrigger>
+            <TabsTrigger 
+              value="found" 
+              className="bg-green-50 text-green-700 hover:bg-green-100 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-green-600 data-[state=active]:text-white font-semibold px-6 py-2.5 rounded-lg transition-all"
+            >
+              Found
+            </TabsTrigger>
+            <TabsTrigger 
+              value="my-reports" 
+              className="bg-purple-50 text-purple-700 hover:bg-purple-100 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white font-semibold px-6 py-2.5 rounded-lg transition-all"
+            >
+              My Reports
+            </TabsTrigger>
+            <TabsTrigger 
+              value="archived" 
+              className="bg-gray-50 text-gray-700 hover:bg-gray-100 data-[state=active]:bg-gradient-to-r data-[state=active]:from-gray-500 data-[state=active]:to-gray-600 data-[state=active]:text-white font-semibold px-6 py-2.5 rounded-lg transition-all"
+            >
+              Archived
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value={activeTab}>
             {loading ? (
-              <div className="text-center py-20 bg-white rounded-xl shadow-md">
-                <div className="size-16 mx-auto border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-                <p className="text-gray-600 font-medium">Loading reports...</p>
-                <p className="text-sm text-gray-400 mt-1">Please wait while we fetch the latest items</p>
+              <div className="text-center py-24 bg-white rounded-2xl shadow-xl border-2 border-blue-100">
+                <div className="size-20 mx-auto border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-6"></div>
+                <p className="text-gray-800 font-bold text-lg">Loading reports...</p>
+                <p className="text-sm text-gray-500 mt-2">Please wait while we fetch the latest items</p>
               </div>
             ) : filteredReports.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-xl shadow-md border-2 border-dashed border-gray-200">
-                <div className="bg-gray-100 rounded-full size-20 mx-auto mb-4 flex items-center justify-center">
-                  <Package className="size-10 text-gray-400" />
+              <div className="text-center py-24 bg-white rounded-2xl shadow-xl border-2 border-dashed border-gray-300">
+                <div className="bg-blue-100 rounded-full size-24 mx-auto mb-6 flex items-center justify-center">
+                  <Package className="size-12 text-blue-600" />
                 </div>
-                <p className="text-lg font-semibold text-gray-700 mb-1">No items found</p>
-                <p className="text-sm text-gray-500">Try adjusting your search or filters</p>
+                <p className="text-xl font-bold text-gray-800 mb-2">No items found</p>
+                <p className="text-sm text-gray-600">Try adjusting your search or filters</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredReports.map((report, index) => (
-                  <div key={report.id ?? index} className="animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: `${index * 50}ms`, animationDuration: '400ms', animationFillMode: 'backwards' }}>
+                  <div 
+                    key={report.id ?? index} 
+                    className="animate-in fade-in slide-in-from-bottom-6" 
+                    style={{ 
+                      animationDelay: `${index * 60}ms`, 
+                      animationDuration: '500ms', 
+                      animationFillMode: 'backwards' 
+                    }}
+                  >
                     <ItemCard
                       report={report}
                       currentUserId={user.id}
+                      onArchive={handleArchiveItem}
                     />
                   </div>
                 ))}

@@ -62,23 +62,31 @@ export function ClaimModal({ isOpen, onClose, report, userId }) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle className="text-xl">
-            {report?.type === 'found' ? 'Claim This Found Item' : 'I Found This Item'}
+      <DialogContent className="sm:max-w-[550px] border-2 border-gray-200">
+        <DialogHeader className="space-y-3">
+          <DialogTitle className="text-2xl font-bold text-gray-900">
+            {report?.type === 'found' ? '🔍 Claim This Found Item' : '✨ I Found This Item'}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-base">
             {report?.type === 'found' 
-              ? (<>Send a message to <span className="font-semibold text-gray-700">{report?.userName}</span> requesting to claim: <span className="font-semibold text-blue-600">{report?.itemName}</span></>) 
-              : (<>Notify <span className="font-semibold text-gray-700">{report?.userName}</span> that you found their item: <span className="font-semibold text-blue-600">{report?.itemName}</span></>)
+              ? (
+                <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+                  Send a message to <span className="font-bold text-gray-800">{report?.userName}</span> requesting to claim: <span className="font-bold text-blue-700">{report?.itemName}</span>
+                </div>
+              ) 
+              : (
+                <div className="bg-green-50 border-l-4 border-green-500 p-3 rounded">
+                  Notify <span className="font-bold text-gray-800">{report?.userName}</span> that you found their item: <span className="font-bold text-green-700">{report?.itemName}</span>
+                </div>
+              )
             }
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="message">
-              Message <span className="text-red-500">*</span>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-3">
+            <Label htmlFor="message" className="text-base font-semibold">
+              Your Message <span className="text-red-500">*</span>
             </Label>
             <Textarea
               id="message"
@@ -89,40 +97,41 @@ export function ClaimModal({ isOpen, onClose, report, userId }) {
               }
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              rows={5}
+              rows={6}
               required
-              className="resize-none"
+              className="resize-none border-2 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 rounded-xl text-base"
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded-lg border border-gray-200">
               {report?.type === 'found'
-                ? "Provide details to help the owner verify you're the rightful owner"
-                : "Provide details to help the owner identify their lost item"
+                ? "💡 Provide details to help the owner verify you're the rightful owner"
+                : "💡 Provide details to help the owner identify their lost item"
               }
             </p>
           </div>
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-3">
             <Button 
               type="button" 
               variant="outline" 
               onClick={onClose}
               disabled={isSubmitting}
+              className="border-2 hover:bg-gray-100 font-semibold"
             >
               Cancel
             </Button>
             <Button 
               type="submit" 
               disabled={isSubmitting || !message.trim()}
-              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+              className="bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 hover:from-blue-600 hover:via-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl font-bold px-6"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="size-4 mr-2 animate-spin" />
+                  <Loader2 className="size-5 mr-2 animate-spin" />
                   Sending...
                 </>
               ) : (
                 <>
-                  <Send className="size-4 mr-2" />
+                  <Send className="size-5 mr-2" />
                   Send Request
                 </>
               )}
