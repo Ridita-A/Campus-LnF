@@ -41,7 +41,7 @@ export function ReportForm({ type, userId, onSubmit, onCancel }) {
     // 1. Upload images and get public URLs
     const imageUrls = [];
     for (const file of imageFiles) {
-      const fileName = `${userId}/${Date.now()}_${file.name}`;
+      const fileName = `${type}/${Date.now()}_${file.name}`;
       try {
         const { error: uploadError } = await supabase.storage
           .from("lnf-images")
