@@ -35,6 +35,17 @@ export function ReportForm({ type, userId, onSubmit, onCancel }) {
     fetchTags();
   }, []);
 
+  const handleRemoveImage = (indexToRemove) => {
+    setImageFiles((prevFiles) => {
+      const newFiles = prevFiles.filter((_, index) => index !== indexToRemove);
+      // Revoke the URL of the removed file to free up memory
+      if (prevFiles[indexToRemove]) {
+        URL.revokeObjectURL(URL.createObjectURL(prevFiles[indexToRemove]));
+      }
+      return newFiles;
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -60,15 +71,22 @@ export function ReportForm({ type, userId, onSubmit, onCancel }) {
 
     // 2. Create report object
     const report = {
-      id: Date.now(), // unique ID for frontend & React keys
+      id: Date.now(), 
       creator_id: userId,
-      last_location_id: parseInt(location),
       title: itemName,
       description,
-      lost_at: new Date(date).toISOString(),
       tags: [parseInt(category)],
       image_urls: imageUrls,
     };
+
+    if (type === 'lost') {
+        report.last_location_id = parseInt(location);
+        report.lost_at = new Date(date).toISOString();
+    } else if (type === 'found') {
+        report.found_location_id = parseInt(location);
+        report.found_at = new Date(date).toISOString();
+    }
+
 
     // 3. Send to backend API
     try {
@@ -83,11 +101,26 @@ export function ReportForm({ type, userId, onSubmit, onCancel }) {
 
         if (!response.ok) {
           console.error('Error creating lost report:', data.error);
-        } else {
-          onSubmit(report); // use frontend report with generated ID
+        }
+        else {
+          onSubmit(report); 
+        }
+      } else if (type === 'found') { 
+        const response = await fetch('http://localhost:3000/api/found/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(report)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          console.error('Error creating found report:', data.error);
+        }
+        else {
+          onSubmit(report); 
         }
       }
-      // handle 'found' reports here if needed
     } catch (err) {
       console.error('Network or API error:', err);
     }
@@ -107,8 +140,41 @@ export function ReportForm({ type, userId, onSubmit, onCancel }) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+
           <div className="space-y-2">
-            <Label htmlFor="item-name">Item Name</Label>
+            <Label htmlFor="images">Images</Label>
+            <Input
+              id="images"
+              type="file"
+              multiple
+              onChange={(e) => setImageFiles(Array.from(e.target.files))}
+              required={type === 'found'}
+            />
+            {imageFiles.length > 0 && (
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                {imageFiles.map((file, index) => (
+                  <div key={index} className="relative w-full h-24 overflow-hidden rounded-md group">
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt={`Preview ${index}`}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      onLoad={() => URL.revokeObjectURL(file.preview)} // Clean up memory
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(index)}
+                      className="absolute top-1 right-1 bg-Black-500 text-Black rounded-full p-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    >
+                      X
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="item-name">Title</Label>
             <Input
               id="item-name"
               type="text"
@@ -143,7 +209,6 @@ export function ReportForm({ type, userId, onSubmit, onCancel }) {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
-              required
             />
           </div>
 
@@ -175,16 +240,6 @@ export function ReportForm({ type, userId, onSubmit, onCancel }) {
               />
               <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-gray-400 pointer-events-none" />
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="images">Images</Label>
-            <Input
-              id="images"
-              type="file"
-              multiple
-              onChange={(e) => setImageFiles(Array.from(e.target.files))}
-            />
           </div>
 
           <div className="flex gap-2 pt-4">
