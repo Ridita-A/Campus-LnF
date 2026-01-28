@@ -77,8 +77,8 @@ export function Dashboard({ user, onLogout }) {
   // Filter reports
   const filteredReports = reports.filter((report) => {
     const matchesSearch =
-      report.itemName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.description.toLowerCase().includes(searchQuery.toLowerCase());
+      (report.itemName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (report.description || "").toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = filterCategory === "all" || report.category === filterCategory;
     const matchesTab =
       activeTab === "all" ||
@@ -197,9 +197,9 @@ export function Dashboard({ user, onLogout }) {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredReports.map((report) => (
+                {filteredReports.map((report, index) => (
                   <ItemCard
-                    key={report.id}
+                    key={report.id ?? index}
                     report={report}
                     currentUserId={user.id}
                     onMarkResolved={handleMarkResolved}
