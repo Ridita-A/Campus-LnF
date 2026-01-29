@@ -5,7 +5,7 @@ const router = express.Router();
 // GET ALL LOST REPORTS
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM get_lost_reports()');
+    const result = await pool.query('SELECT * FROM vw_lost_reports');
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching lost reports:', err);
