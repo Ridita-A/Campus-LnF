@@ -1,5 +1,5 @@
 -- ENUM TYPES
-CREATE TYPE report_status_enum AS ENUM ('active', 'completed', 'expired');
+CREATE TYPE report_status_enum AS ENUM ('active', 'completed', 'expired', 'archived');
 
 CREATE TYPE request_status_enum AS ENUM ('pending', 'accepted', 'rejected');
 
@@ -70,15 +70,23 @@ CREATE TABLE Found_Report (
 
 
 -- CLAIM REQUEST
+-- Supports claims for both found items and lost items
 CREATE TABLE Claim_Request (
     claim_id SERIAL PRIMARY KEY,
     requester_id INT NOT NULL,
-    found_report_id INT NOT NULL,
+    found_report_id INT,
+    lost_report_id INT,
     message TEXT,
     claimed_at TIMESTAMP,
     status request_status_enum,
     FOREIGN KEY (requester_id) REFERENCES Users(user_id) ON DELETE CASCADE,
-    FOREIGN KEY (found_report_id) REFERENCES Found_Report(found_id) ON DELETE CASCADE
+    FOREIGN KEY (found_report_id) REFERENCES Found_Report(found_id) ON DELETE CASCADE,
+    FOREIGN KEY (lost_report_id) REFERENCES Lost_Report(lost_id) ON DELETE CASCADE,
+    -- Ensure either found_report_id or lost_report_id is set (not both, not neither)
+    CHECK (
+        (found_report_id IS NOT NULL AND lost_report_id IS NULL) OR
+        (found_report_id IS NULL AND lost_report_id IS NOT NULL)
+    )
 );
 
 

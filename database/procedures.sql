@@ -1,3 +1,7 @@
+-- ============================================
+-- REPORT CREATION PROCEDURES
+-- ============================================
+
 CREATE OR REPLACE PROCEDURE create_lost_report(
     p_creator_id INT,
     p_last_location_id INT,
@@ -78,4 +82,141 @@ BEGIN
         VALUES (new_found_id, image_url);
     END LOOP;
 END;
-$$
+$$;
+
+
+-- ============================================
+-- CLAIM REQUEST PROCEDURES
+-- ============================================
+
+CREATE OR REPLACE PROCEDURE create_claim_request_found(
+    p_requester_id INT,
+    p_found_report_id INT,
+    p_message TEXT
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_found_creator_id INT;
+    v_item_title VARCHAR(50);
+    v_requester_name VARCHAR(100);
+BEGIN
+    -- Get the creator of the found report and item title
+    SELECT creator_id, title INTO v_found_creator_id, v_item_title
+    FROM Found_Report
+    WHERE found_id = p_found_report_id;
+
+    -- Get requester name
+    SELECT name INTO v_requester_name
+    FROM Users
+    WHERE user_id = p_requester_id;
+
+    -- Insert claim request
+    INSERT INTO Claim_Request (
+        requester_id, 
+        found_report_id, 
+        message, 
+        claimed_at, 
+        status
+    )
+    VALUES (
+        p_requester_id, 
+        p_found_report_id, 
+        p_message, 
+        NOW(), 
+        'pending'
+    );
+
+    -- Create notification for the found item creator
+    INSERT INTO Notification (user_id, message)
+    VALUES (
+        v_found_creator_id,
+        v_requester_name || ' has requested to claim your found item: ' || v_item_title
+    );
+END;
+$$;
+
+CREATE OR REPLACE PROCEDURE create_claim_request_lost(
+    p_requester_id INT,
+    p_lost_report_id INT,
+    p_message TEXT
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_lost_creator_id INT;
+    v_item_title VARCHAR(50);
+    v_requester_name VARCHAR(100);
+BEGIN
+    -- Get the creator of the lost report and item title
+    SELECT creator_id, title INTO v_lost_creator_id, v_item_title
+    FROM Lost_Report
+    WHERE lost_id = p_lost_report_id;
+
+    -- Get requester name
+    SELECT name INTO v_requester_name
+    FROM Users
+    WHERE user_id = p_requester_id;
+
+    -- Insert claim request for lost item
+    INSERT INTO Claim_Request (
+        requester_id, 
+        lost_report_id, 
+        message, 
+        claimed_at, 
+        status
+    )
+    VALUES (
+        p_requester_id, 
+        p_lost_report_id, 
+        p_message, 
+        NOW(), 
+        'pending'
+    );
+
+    -- Create notification for the lost item creator
+    INSERT INTO Notification (user_id, message)
+    VALUES (
+        v_lost_creator_id,
+        v_requester_name || ' says they found your lost item: ' || v_item_title
+    );
+END;
+$$;
+
+
+-- ============================================
+-- NOTIFICATION PROCEDURES
+-- ============================================
+
+CREATE OR REPLACE PROCEDURE delete_notification(p_notification_id INT)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    DELETE FROM Notification WHERE notification_id = p_notification_id;
+END;
+$$;
+
+
+-- ============================================
+-- ARCHIVE PROCEDURES
+-- ============================================
+
+CREATE OR REPLACE PROCEDURE archive_lost_report(p_lost_id INT)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    UPDATE Lost_Report
+    SET status = 'archived'
+    WHERE lost_id = p_lost_id;
+END;
+$$;
+
+CREATE OR REPLACE PROCEDURE archive_found_report(p_found_id INT)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    UPDATE Found_Report
+    SET status = 'archived'
+    WHERE found_id = p_found_id;
+END;
+$$;

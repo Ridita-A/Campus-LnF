@@ -1,3 +1,7 @@
+-- ============================================
+-- AUTHENTICATION FUNCTIONS
+-- ============================================
+
 CREATE OR REPLACE FUNCTION user_login(
     user_email VARCHAR(255),
     user_password TEXT
@@ -52,6 +56,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+-- ============================================
+-- LOOKUP FUNCTIONS
+-- ============================================
+
 CREATE OR REPLACE FUNCTION get_locations()
 RETURNS TABLE (
     location_id INT,
@@ -79,5 +88,85 @@ BEGIN
         t.name
     FROM
         Tags t;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- ============================================
+-- NOTIFICATION FUNCTIONS
+-- ============================================
+
+CREATE OR REPLACE FUNCTION get_user_notifications(p_user_id INT)
+RETURNS TABLE (
+    notification_id INT,
+    message TEXT,
+    created_at TIMESTAMP WITHOUT TIME ZONE
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        n.notification_id,
+        n.message,
+        LOCALTIMESTAMP as created_at
+    FROM Notification n
+    WHERE n.user_id = p_user_id
+    ORDER BY n.notification_id DESC;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- ============================================
+-- CLAIM REQUEST FUNCTIONS
+-- ============================================
+
+CREATE OR REPLACE FUNCTION get_user_claim_requests(p_user_id INT)
+RETURNS TABLE (
+    claim_id INT,
+    requester_id INT,
+    requester_name VARCHAR(100),
+    report_id INT,
+    report_type TEXT,
+    item_title VARCHAR(50),
+    message TEXT,
+    claimed_at TIMESTAMP,
+    status request_status_enum
+) AS $$
+BEGIN
+    RETURN QUERY
+    -- Claims for found items
+    SELECT 
+        cr.claim_id,
+        cr.requester_id,
+        u.name as requester_name,
+        cr.found_report_id as report_id,
+        'found'::TEXT as report_type,
+        fr.title as item_title,
+        cr.message,
+        cr.claimed_at,
+        cr.status
+    FROM Claim_Request cr
+    JOIN Found_Report fr ON cr.found_report_id = fr.found_id
+    JOIN Users u ON cr.requester_id = u.user_id
+    WHERE fr.creator_id = p_user_id AND cr.found_report_id IS NOT NULL
+    
+    UNION ALL
+    
+    -- Claims for lost items
+    SELECT 
+        cr.claim_id,
+        cr.requester_id,
+        u.name as requester_name,
+        cr.lost_report_id as report_id,
+        'lost'::TEXT as report_type,
+        lr.title as item_title,
+        cr.message,
+        cr.claimed_at,
+        cr.status
+    FROM Claim_Request cr
+    JOIN Lost_Report lr ON cr.lost_report_id = lr.lost_id
+    JOIN Users u ON cr.requester_id = u.user_id
+    WHERE lr.creator_id = p_user_id AND cr.lost_report_id IS NOT NULL
+    
+    ORDER BY claimed_at DESC;
 END;
 $$ LANGUAGE plpgsql;
