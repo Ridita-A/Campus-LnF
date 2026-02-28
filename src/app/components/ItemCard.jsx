@@ -99,26 +99,13 @@ export function ItemCard({ report, currentUserId, onArchive }) {
       </CardHeader>
 
       <CardContent className="space-y-2 pt-2">
-        <div className="grid grid-cols-2 gap-2">
-          <div className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 p-1.5 rounded-md border border-gray-100">
-            <MapPin className="size-3 text-green-500 shrink-0" />
-            <span className="truncate">{report.location}</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 p-1.5 rounded-md border border-gray-100">
-            <Calendar className="size-3 text-purple-500 shrink-0" />
-            <span className="truncate">{new Date(report.date).toLocaleDateString('en-US', { 
-              month: 'short', 
-              day: 'numeric'
-            })}</span>
-          </div>
-        </div>
-
         {/* Claim Buttons */}
         {report.type === "found" && !isOwner && report.status === "active" && (
           <Button 
             onClick={handleClaimClick}
-            className="w-full mt-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-md transition-all text-white font-bold py-4 text-sm"
+            className="w-full mt-2 bg-gradient-to-r from-green-500 via-green-600 to-green-700 hover:from-green-600 hover:via-green-700 hover:to-green-800 shadow-lg hover:shadow-xl transition-all duration-300 text-white font-bold py-6 text-base group rounded-xl"
           >
+            <HandHeart className="size-5 mr-2 group-hover:scale-110 transition-transform" />
             I Lost This
           </Button>
         )}
@@ -126,8 +113,9 @@ export function ItemCard({ report, currentUserId, onArchive }) {
         {report.type === "lost" && !isOwner && report.status === "active" && (
           <Button 
             onClick={handleClaimClick}
-            className="w-full mt-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md transition-all text-white font-bold py-4 text-sm"
+            className="w-full mt-2 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 hover:from-blue-600 hover:via-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-300 text-white font-bold py-6 text-base group rounded-xl"
           >
+            <HandHeart className="size-5 mr-2 group-hover:scale-110 transition-transform" />
             I Found This
           </Button>
         )}
@@ -163,6 +151,8 @@ export function ItemCard({ report, currentUserId, onArchive }) {
       isOpen={showDetailModal}
       onClose={() => setShowDetailModal(false)}
       report={report}
+      currentUserId={currentUserId}
+      onClaim={() => setShowClaimModal(true)}
     />
     </>
   );

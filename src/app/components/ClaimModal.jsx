@@ -107,8 +107,8 @@ export function ClaimModal({ isOpen, onClose, report, userId }) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[550px] border-2 border-gray-200">
-        <DialogHeader className="space-y-3">
+      <DialogContent className="sm:max-w-[550px] max-h-[90vh] p-0 overflow-hidden border-2 border-gray-200 flex flex-col">
+        <DialogHeader className="p-6 pb-2 space-y-3">
           <DialogTitle className="text-2xl font-bold text-gray-900">
             {report?.type === 'found' ? '🔍 Claim This Found Item' : '✨ I Found This Item'}
           </DialogTitle>
@@ -128,100 +128,102 @@ export function ClaimModal({ isOpen, onClose, report, userId }) {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Image Upload Section */}
-          <div className="space-y-3">
-            <Label className="text-base font-semibold flex items-center gap-2">
-              <Upload className="size-4 text-blue-600" />
-              Upload Photos {report?.type === 'lost' && <span className="text-red-500">*</span>}
-            </Label>
-            <div 
-              className={`relative border-2 border-dashed rounded-xl p-6 transition-all duration-300 group cursor-pointer
-                ${report?.type === 'lost' && imageFiles.length === 0 ? 'border-red-200 bg-red-50/30 hover:border-red-400' : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50/30'}`}
-              onClick={() => document.getElementById('claim-images').click()}
-            >
-              <Input
-                id="claim-images"
-                type="file"
-                multiple
-                className="hidden"
-                onChange={(e) => {
-                  const files = Array.from(e.target.files);
-                  setImageFiles(prev => [...prev, ...files]);
-                  e.target.value = '';
-                }}
-                accept="image/*"
-              />
-              <div className="flex flex-col items-center justify-center gap-2 text-center">
-                <div className={`p-3 rounded-full transition-colors ${report?.type === 'lost' && imageFiles.length === 0 ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
-                  <Upload className="size-6" />
-                </div>
-                <div>
-                  <p className="font-bold text-gray-900">
-                    Click to upload images
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1 max-w-xs mx-auto">
-                    {report?.type === 'lost' 
-                      ? "Mandatory: Upload a photo of the item you found to help the owner verify it" 
-                      : "Optional: Add photos to help verify your claim"}
-                  </p>
+        <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
+          <div className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar">
+            {/* Image Upload Section */}
+            <div className="space-y-3">
+              <Label className="text-base font-semibold flex items-center gap-2">
+                <Upload className="size-4 text-blue-600" />
+                Upload Photos {report?.type === 'lost' && <span className="text-red-500">*</span>}
+              </Label>
+              <div 
+                className={`relative border-2 border-dashed rounded-xl p-6 transition-all duration-300 group cursor-pointer
+                  ${report?.type === 'lost' && imageFiles.length === 0 ? 'border-red-200 bg-red-50/30 hover:border-red-400' : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50/30'}`}
+                onClick={() => document.getElementById('claim-images').click()}
+              >
+                <Input
+                  id="claim-images"
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files);
+                    setImageFiles(prev => [...prev, ...files]);
+                    e.target.value = '';
+                  }}
+                  accept="image/*"
+                />
+                <div className="flex flex-col items-center justify-center gap-2 text-center">
+                  <div className={`p-3 rounded-full transition-colors ${report?.type === 'lost' && imageFiles.length === 0 ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                    <Upload className="size-6" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900">
+                      Click to upload images
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1 max-w-xs mx-auto">
+                      {report?.type === 'lost' 
+                        ? "Mandatory: Upload a photo of the item you found to help the owner verify it" 
+                        : "Optional: Add photos to help verify your claim"}
+                    </p>
+                  </div>
                 </div>
               </div>
+
+              {imageFiles.length > 0 && (
+                <div className="mt-4 grid grid-cols-4 gap-2 p-3 bg-gray-50 rounded-xl border-2 border-gray-100 animate-in fade-in duration-500">
+                  {imageFiles.map((file, index) => (
+                    <div key={index} className="relative aspect-square overflow-hidden rounded-lg group border-2 border-white shadow-md">
+                      <img
+                        src={previews[index]}
+                        alt={`Preview ${index}`}
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveImage(index);
+                          }}
+                          className="bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 hover:scale-110 transition-all shadow-lg"
+                        >
+                          <X className="size-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {imageFiles.length > 0 && (
-              <div className="mt-4 grid grid-cols-4 gap-2 p-3 bg-gray-50 rounded-xl border-2 border-gray-100 animate-in fade-in duration-500">
-                {imageFiles.map((file, index) => (
-                  <div key={index} className="relative aspect-square overflow-hidden rounded-lg group border-2 border-white shadow-md">
-                    <img
-                      src={previews[index]}
-                      alt={`Preview ${index}`}
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRemoveImage(index);
-                        }}
-                        className="bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 hover:scale-110 transition-all shadow-lg"
-                      >
-                        <X className="size-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="space-y-3">
+              <Label htmlFor="message" className="text-base font-semibold">
+                Your Message <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="message"
+                placeholder={
+                  report?.type === 'found'
+                    ? "Describe why this item is yours (e.g., color, brand, unique features, where you lost it...)"
+                    : "Describe the item you found (e.g., where you found it, color, brand, condition...)"
+                }
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                rows={6}
+                required
+                className="resize-none border-2 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 rounded-xl text-base"
+              />
+              <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded-lg border border-gray-200">
+                {report?.type === 'found'
+                  ? "💡 Provide details to help the owner verify you're the rightful owner"
+                  : "💡 Provide details to help the owner identify their lost item"
+                }
+              </p>
+            </div>
           </div>
 
-          <div className="space-y-3">
-            <Label htmlFor="message" className="text-base font-semibold">
-              Your Message <span className="text-red-500">*</span>
-            </Label>
-            <Textarea
-              id="message"
-              placeholder={
-                report?.type === 'found'
-                  ? "Describe why this item is yours (e.g., color, brand, unique features, where you lost it...)"
-                  : "Describe the item you found (e.g., where you found it, color, brand, condition...)"
-              }
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              rows={6}
-              required
-              className="resize-none border-2 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 rounded-xl text-base"
-            />
-            <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded-lg border border-gray-200">
-              {report?.type === 'found'
-                ? "💡 Provide details to help the owner verify you're the rightful owner"
-                : "💡 Provide details to help the owner identify their lost item"
-              }
-            </p>
-          </div>
-
-          <DialogFooter className="gap-3">
+          <DialogFooter className="p-6 pt-2 bg-gray-50 border-t border-gray-100 gap-3">
             <Button 
               type="button" 
               variant="outline" 

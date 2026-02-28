@@ -115,7 +115,9 @@ RETURNS TABLE (
     item_description TEXT,
     location_name VARCHAR(100),
     item_date TIMESTAMP WITH TIME ZONE,
-    item_image_url TEXT
+    item_image_url TEXT,
+    item_image_urls TEXT[],
+    requester_image_urls TEXT[]
 ) AS $$
 BEGIN
     RETURN QUERY
@@ -153,7 +155,23 @@ BEGIN
              WHERE lri.lost_id = COALESCE(lr_claim.lost_id, lr_return.lost_id)
              ORDER BY lri.image_id
              LIMIT 1)
-        ) AS item_image_url
+        ) AS item_image_url,
+        COALESCE(
+            (SELECT ARRAY_AGG(fri.image_url)
+             FROM Found_Report_Images fri
+             WHERE fri.found_id = fr.found_id),
+            (SELECT ARRAY_AGG(lri.image_url)
+             FROM Lost_Report_Images lri
+             WHERE lri.lost_id = COALESCE(lr_claim.lost_id, lr_return.lost_id))
+        ) AS item_image_urls,
+        COALESCE(
+            (SELECT ARRAY_AGG(cri.image_url)
+             FROM Claim_Request_Images cri
+             WHERE cri.claim_id = cr.claim_id),
+            (SELECT ARRAY_AGG(rri.image_url)
+             FROM Return_Request_Images rri
+             WHERE rri.return_id = rr.return_id)
+        ) AS requester_image_urls
     FROM Notification n
     LEFT JOIN Claim_Request cr ON n.claim_id = cr.claim_id
     LEFT JOIN Return_Request rr ON n.return_id = rr.return_id

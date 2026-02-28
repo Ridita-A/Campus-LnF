@@ -5,9 +5,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/app/components/ui/dialog.jsx";
 import { Badge } from "@/app/components/ui/badge.jsx";
-import { ScrollArea } from "@/app/components/ui/scroll-area.jsx";
+import { Button } from "@/app/components/ui/button.jsx";
 import { 
   MapPin, 
   Calendar, 
@@ -16,7 +17,8 @@ import {
   Info, 
   ChevronLeft, 
   ChevronRight,
-  Clock
+  Clock,
+  HandHeart
 } from "lucide-react";
 import ImageWithFallback from "@/app/components/ui/ImageWithFallback.jsx";
 import {
@@ -27,17 +29,18 @@ import {
   CarouselPrevious,
 } from "@/app/components/ui/carousel.jsx";
 
-export function ItemDetailModal({ isOpen, onClose, report }) {
+export function ItemDetailModal({ isOpen, onClose, report, currentUserId, onClaim }) {
   if (!report) return null;
 
+  const isOwner = report.userId === currentUserId;
   const images = report.imageUrls && report.imageUrls.length > 0 
     ? report.imageUrls 
     : (report.imageUrl ? [report.imageUrl] : []);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] p-0 overflow-hidden flex flex-col">
-        <DialogHeader className="p-6 pb-2 pr-12">
+      <DialogContent className="max-w-3xl max-h-[90vh] p-0 overflow-hidden flex flex-col border-none shadow-2xl">
+        <DialogHeader className="p-6 pb-2 pr-12 bg-white">
           <div className="flex flex-wrap items-center gap-3">
             <DialogTitle className="text-2xl font-bold text-gray-900">
               {report.itemName}
@@ -159,6 +162,35 @@ export function ItemDetailModal({ isOpen, onClose, report }) {
             </div>
           </div>
         </div>
+
+        {/* Footer Actions */}
+        {!isOwner && report.status === "active" && (
+          <DialogFooter className="p-6 bg-gray-50 border-t-2 border-gray-100 sm:justify-center">
+            {report.type === "found" ? (
+              <Button 
+                onClick={(e) => {
+                  onClose();
+                  onClaim(e);
+                }}
+                className="w-full sm:max-w-md bg-gradient-to-r from-green-500 via-green-600 to-green-700 hover:from-green-600 hover:via-green-700 hover:to-green-800 shadow-xl transition-all duration-300 text-white font-bold py-7 text-lg group rounded-2xl"
+              >
+                <HandHeart className="size-6 mr-3 group-hover:scale-110 transition-transform" />
+                I Lost This Item
+              </Button>
+            ) : (
+              <Button 
+                onClick={(e) => {
+                  onClose();
+                  onClaim(e);
+                }}
+                className="w-full sm:max-w-md bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 hover:from-blue-600 hover:via-blue-700 hover:to-blue-800 shadow-xl transition-all duration-300 text-white font-bold py-7 text-lg group rounded-2xl"
+              >
+                <HandHeart className="size-6 mr-3 group-hover:scale-110 transition-transform" />
+                I Found This Item
+              </Button>
+            )}
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );
