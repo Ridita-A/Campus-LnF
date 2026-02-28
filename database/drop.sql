@@ -1,13 +1,14 @@
 -- DROP FUNCTIONS AND PROCEDURES FIRST
 DROP FUNCTION IF EXISTS get_user_notifications(INT);
 DROP FUNCTION IF EXISTS get_user_claim_requests(INT);
+DROP FUNCTION IF EXISTS get_user_return_requests(INT);
 DROP FUNCTION IF EXISTS user_login(VARCHAR, VARCHAR);
 DROP FUNCTION IF EXISTS user_signup(VARCHAR, VARCHAR, VARCHAR, NUMERIC, BIGINT);
 DROP FUNCTION IF EXISTS get_locations();
 DROP FUNCTION IF EXISTS get_tags();
 
 DROP PROCEDURE IF EXISTS create_claim_request_found(INT, INT, TEXT, TEXT[]);
-DROP PROCEDURE IF EXISTS create_claim_request_lost(INT, INT, TEXT, TEXT[]);
+DROP PROCEDURE IF EXISTS create_return_request_lost(INT, INT, TEXT, TEXT[]);
 DROP PROCEDURE IF EXISTS delete_notification(INT);
 DROP PROCEDURE IF EXISTS archive_lost_report(INT);
 DROP PROCEDURE IF EXISTS archive_found_report(INT);
