@@ -20,8 +20,8 @@ export function ItemCard({ report, currentUserId, onArchive }) {
     setIsArchiving(true);
     try {
       const endpoint = report.type === 'lost' 
-        ? `http://localhost:3000/api/archive/lost/${report.id}`
-        : `http://localhost:3000/api/archive/found/${report.id}`;
+        ? `http://localhost:3000/api/archive/lost/${report.dbId}`
+        : `http://localhost:3000/api/archive/found/${report.dbId}`;
 
       const response = await fetch(endpoint, { method: 'POST' });
 
