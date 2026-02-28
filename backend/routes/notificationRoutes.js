@@ -18,6 +18,27 @@ router.get('/user/:userId', async (req, res) => {
   }
 });
 
+// MARK NOTIFICATION AS READ
+router.patch('/:notificationId/read', async (req, res) => {
+  const { notificationId } = req.params;
+  const { user_id } = req.body;
+
+  if (!user_id) {
+    return res.status(400).json({ error: 'user_id is required' });
+  }
+
+  try {
+    await pool.query(
+      'CALL mark_notification_as_read($1, $2)',
+      [notificationId, user_id]
+    );
+    res.json({ message: 'Notification marked as read' });
+  } catch (err) {
+    console.error('Error marking notification as read:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // DELETE NOTIFICATION
 router.delete('/:notificationId', async (req, res) => {
   const { notificationId } = req.params;
