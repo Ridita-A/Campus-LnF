@@ -96,21 +96,71 @@ $$ LANGUAGE plpgsql;
 -- NOTIFICATION FUNCTIONS
 -- ============================================
 
+DROP FUNCTION IF EXISTS get_user_notifications(INT);
+
 CREATE OR REPLACE FUNCTION get_user_notifications(p_user_id INT)
 RETURNS TABLE (
     notification_id INT,
     message TEXT,
-    created_at TIMESTAMP WITHOUT TIME ZONE
+    created_at TIMESTAMP WITH TIME ZONE,
+    is_read BOOLEAN,
+    read_at TIMESTAMP WITH TIME ZONE,
+    claim_id INT,
+    requester_name VARCHAR(100),
+    requester_message TEXT,
+    report_type TEXT,
+    report_id INT,
+    item_title VARCHAR(50),
+    item_description TEXT,
+    location_name VARCHAR(100),
+    item_date TIMESTAMP WITH TIME ZONE,
+    item_image_url TEXT
 ) AS $$
 BEGIN
     RETURN QUERY
     SELECT 
         n.notification_id,
         n.message,
-        LOCALTIMESTAMP as created_at
+        n.created_at AT TIME ZONE 'UTC',
+        n.is_read,
+        CASE
+            WHEN n.read_at IS NULL THEN NULL
+            ELSE n.read_at AT TIME ZONE 'UTC'
+        END,
+        n.claim_id,
+        u.name AS requester_name,
+        cr.message AS requester_message,
+        CASE
+            WHEN cr.found_report_id IS NOT NULL THEN 'found'::TEXT
+            WHEN cr.lost_report_id IS NOT NULL THEN 'lost'::TEXT
+            ELSE NULL::TEXT
+        END AS report_type,
+        COALESCE(cr.found_report_id, cr.lost_report_id) AS report_id,
+        COALESCE(fr.title, lr.title) AS item_title,
+        COALESCE(fr.description, lr.description) AS item_description,
+        COALESCE(fl.name, ll.name) AS location_name,
+        COALESCE(fr.found_at, lr.lost_at) AT TIME ZONE 'UTC' AS item_date,
+        COALESCE(
+            (SELECT fri.image_url
+             FROM Found_Report_Images fri
+             WHERE fri.found_id = fr.found_id
+             ORDER BY fri.image_id
+             LIMIT 1),
+            (SELECT lri.image_url
+             FROM Lost_Report_Images lri
+             WHERE lri.lost_id = lr.lost_id
+             ORDER BY lri.image_id
+             LIMIT 1)
+        ) AS item_image_url
     FROM Notification n
+    LEFT JOIN Claim_Request cr ON n.claim_id = cr.claim_id
+    LEFT JOIN Users u ON cr.requester_id = u.user_id
+    LEFT JOIN Found_Report fr ON cr.found_report_id = fr.found_id
+    LEFT JOIN Lost_Report lr ON cr.lost_report_id = lr.lost_id
+    LEFT JOIN Location fl ON fr.found_location_id = fl.location_id
+    LEFT JOIN Location ll ON lr.last_location_id = ll.location_id
     WHERE n.user_id = p_user_id
-    ORDER BY n.notification_id DESC;
+    ORDER BY n.created_at DESC, n.notification_id DESC;
 END;
 $$ LANGUAGE plpgsql;
 

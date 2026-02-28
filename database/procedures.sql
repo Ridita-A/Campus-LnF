@@ -97,6 +97,7 @@ CREATE OR REPLACE PROCEDURE create_claim_request_found(
 LANGUAGE plpgsql
 AS $$
 DECLARE
+    v_claim_id INT;
     v_found_creator_id INT;
     v_item_title VARCHAR(50);
     v_requester_name VARCHAR(100);
@@ -125,12 +126,14 @@ BEGIN
         p_message, 
         NOW(), 
         'pending'
-    );
+    )
+    RETURNING claim_id INTO v_claim_id;
 
     -- Create notification for the found item creator
-    INSERT INTO Notification (user_id, message)
+    INSERT INTO Notification (user_id, claim_id, message)
     VALUES (
         v_found_creator_id,
+        v_claim_id,
         v_requester_name || ' has requested to claim your found item: ' || v_item_title
     );
 END;
@@ -144,6 +147,7 @@ CREATE OR REPLACE PROCEDURE create_claim_request_lost(
 LANGUAGE plpgsql
 AS $$
 DECLARE
+    v_claim_id INT;
     v_lost_creator_id INT;
     v_item_title VARCHAR(50);
     v_requester_name VARCHAR(100);
@@ -172,12 +176,14 @@ BEGIN
         p_message, 
         NOW(), 
         'pending'
-    );
+    )
+    RETURNING claim_id INTO v_claim_id;
 
     -- Create notification for the lost item creator
-    INSERT INTO Notification (user_id, message)
+    INSERT INTO Notification (user_id, claim_id, message)
     VALUES (
         v_lost_creator_id,
+        v_claim_id,
         v_requester_name || ' says they found your lost item: ' || v_item_title
     );
 END;
@@ -193,6 +199,26 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
     DELETE FROM Notification WHERE notification_id = p_notification_id;
+END;
+$$;
+
+CREATE OR REPLACE PROCEDURE mark_notification_as_read(
+    p_notification_id INT,
+    p_user_id INT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    UPDATE Notification
+    SET
+        is_read = TRUE,
+        read_at = COALESCE(read_at, NOW() AT TIME ZONE 'UTC')
+    WHERE notification_id = p_notification_id
+      AND user_id = p_user_id;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Notification not found for this user.';
+    END IF;
 END;
 $$;
 
