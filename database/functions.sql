@@ -166,57 +166,71 @@ $$ LANGUAGE plpgsql;
 
 
 -- ============================================
--- CLAIM REQUEST FUNCTIONS
+-- CLAIM & RETURN REQUEST FUNCTIONS
 -- ============================================
 
+-- Get claims for my FOUND items
 CREATE OR REPLACE FUNCTION get_user_claim_requests(p_user_id INT)
 RETURNS TABLE (
     claim_id INT,
     requester_id INT,
     requester_name VARCHAR(100),
-    report_id INT,
-    report_type TEXT,
+    found_report_id INT,
     item_title VARCHAR(50),
     message TEXT,
     claimed_at TIMESTAMP,
-    status request_status_enum
+    status request_status_enum,
+    image_urls TEXT[]
 ) AS $$
 BEGIN
     RETURN QUERY
-    -- Claims for found items
     SELECT 
         cr.claim_id,
         cr.requester_id,
         u.name as requester_name,
-        cr.found_report_id as report_id,
-        'found'::TEXT as report_type,
+        cr.found_report_id,
         fr.title as item_title,
         cr.message,
         cr.claimed_at,
-        cr.status
+        cr.status,
+        ARRAY(SELECT cri.image_url FROM Claim_Request_Images cri WHERE cri.claim_id = cr.claim_id) as image_urls
     FROM Claim_Request cr
     JOIN Found_Report fr ON cr.found_report_id = fr.found_id
     JOIN Users u ON cr.requester_id = u.user_id
-    WHERE fr.creator_id = p_user_id AND cr.found_report_id IS NOT NULL
-    
-    UNION ALL
-    
-    -- Claims for lost items
+    WHERE fr.creator_id = p_user_id
+    ORDER BY cr.claimed_at DESC;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Get returns for my LOST items
+CREATE OR REPLACE FUNCTION get_user_return_requests(p_user_id INT)
+RETURNS TABLE (
+    return_id INT,
+    requester_id INT,
+    requester_name VARCHAR(100),
+    lost_report_id INT,
+    item_title VARCHAR(50),
+    message TEXT,
+    returned_at TIMESTAMP,
+    status request_status_enum,
+    image_urls TEXT[]
+) AS $$
+BEGIN
+    RETURN QUERY
     SELECT 
-        cr.claim_id,
-        cr.requester_id,
+        rr.return_id,
+        rr.requester_id,
         u.name as requester_name,
-        cr.lost_report_id as report_id,
-        'lost'::TEXT as report_type,
+        rr.lost_report_id,
         lr.title as item_title,
-        cr.message,
-        cr.claimed_at,
-        cr.status
-    FROM Claim_Request cr
-    JOIN Lost_Report lr ON cr.lost_report_id = lr.lost_id
-    JOIN Users u ON cr.requester_id = u.user_id
-    WHERE lr.creator_id = p_user_id AND cr.lost_report_id IS NOT NULL
-    
-    ORDER BY claimed_at DESC;
+        rr.message,
+        rr.returned_at,
+        rr.status,
+        ARRAY(SELECT rri.image_url FROM Return_Request_Images rri WHERE rri.return_id = rr.return_id) as image_urls
+    FROM Return_Request rr
+    JOIN Lost_Report lr ON rr.lost_report_id = lr.lost_id
+    JOIN Users u ON rr.requester_id = u.user_id
+    WHERE lr.creator_id = p_user_id
+    ORDER BY rr.returned_at DESC;
 END;
 $$ LANGUAGE plpgsql;

@@ -5,7 +5,7 @@ import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea.jsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select.jsx";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
-import { Calendar, Upload, Loader2 } from "lucide-react";
+import { Calendar, Upload, Loader2, X } from "lucide-react";
 import { supabase } from "../../supabase";
 import { toast } from "sonner";
 
@@ -16,9 +16,21 @@ export function ReportForm({ type, userId, onSubmit, onCancel }) {
   const [location, setLocation] = useState("");
   const [date, setDate] = useState("");
   const [imageFiles, setImageFiles] = useState([]);
+  const [previews, setPreviews] = useState([]);
   const [locations, setLocations] = useState([]);
   const [tags, setTags] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    // Generate previews when imageFiles changes
+    const newPreviews = imageFiles.map(file => URL.createObjectURL(file));
+    setPreviews(newPreviews);
+
+    // Clean up previews to avoid memory leaks
+    return () => {
+      newPreviews.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [imageFiles]);
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -38,19 +50,19 @@ export function ReportForm({ type, userId, onSubmit, onCancel }) {
   }, []);
 
   const handleRemoveImage = (indexToRemove) => {
-    setImageFiles((prevFiles) => {
-      const newFiles = prevFiles.filter((_, index) => index !== indexToRemove);
-      // Revoke the URL of the removed file to free up memory
-      if (prevFiles[indexToRemove]) {
-        URL.revokeObjectURL(URL.createObjectURL(prevFiles[indexToRemove]));
-      }
-      return newFiles;
-    });
+    setImageFiles((prevFiles) => prevFiles.filter((_, index) => index !== indexToRemove));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+
+    // Validation for found reports
+    if (type === 'found' && imageFiles.length === 0) {
+      toast.error('Found reports MUST include at least one clear image of the item');
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       // 1. Upload images and get public URLs
@@ -128,32 +140,66 @@ export function ReportForm({ type, userId, onSubmit, onCancel }) {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
 
-          <div className="space-y-2">
-            <Label htmlFor="images">Images</Label>
-            <Input
-              id="images"
-              type="file"
-              multiple
-              onChange={(e) => setImageFiles(Array.from(e.target.files))}
-              required={type === 'found'}
-            />
+          <div className="space-y-3">
+            <Label htmlFor="images" className="text-base font-semibold flex items-center gap-2">
+              <Upload className="size-4 text-blue-600" />
+              Item Images {type === 'found' && <span className="text-red-500">*</span>}
+            </Label>
+            <div 
+              className={`relative border-2 border-dashed rounded-xl p-6 transition-all duration-300 group cursor-pointer
+                ${type === 'found' && imageFiles.length === 0 ? 'border-red-200 bg-red-50/30 hover:border-red-400' : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50/30'}`}
+              onClick={() => document.getElementById('images').click()}
+            >
+              <Input
+                id="images"
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  const files = Array.from(e.target.files);
+                  setImageFiles(prev => [...prev, ...files]);
+                  e.target.value = ''; // Reset value to allow re-selection
+                }}
+                accept="image/*"
+              />
+              <div className="flex flex-col items-center justify-center gap-2 text-center">
+                <div className={`p-4 rounded-full transition-colors ${type === 'found' && imageFiles.length === 0 ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                  <Upload className="size-8" />
+                </div>
+                <div>
+                  <p className="font-bold text-gray-900 text-lg">
+                    Click to upload images
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1.5 max-w-xs mx-auto">
+                    {type === 'found' 
+                      ? "Found items MUST have at least one clear image for verification" 
+                      : "Add clear photos to help people recognize the item"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {imageFiles.length > 0 && (
-              <div className="mt-4 grid grid-cols-3 gap-2">
+              <div className="mt-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 p-4 bg-gray-50 rounded-xl border-2 border-gray-100 animate-in fade-in duration-500">
                 {imageFiles.map((file, index) => (
-                  <div key={index} className="relative w-full h-24 overflow-hidden rounded-md group">
+                  <div key={index} className="relative aspect-square overflow-hidden rounded-lg group border-2 border-white shadow-md hover:shadow-xl transition-all duration-300">
                     <img
-                      src={URL.createObjectURL(file)}
+                      src={previews[index]}
                       alt={`Preview ${index}`}
-                      className="absolute inset-0 w-full h-full object-cover"
-                      onLoad={() => URL.revokeObjectURL(file.preview)} // Clean up memory
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveImage(index)}
-                      className="absolute top-1 right-1 bg-Black-500 text-Black rounded-full p-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                    >
-                      X
-                    </button>
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveImage(index);
+                        }}
+                        className="bg-red-500 text-white rounded-full p-2 hover:bg-red-600 hover:scale-110 transition-all shadow-lg active:scale-95"
+                      >
+                        <X className="size-5" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

@@ -92,7 +92,8 @@ $$;
 CREATE OR REPLACE PROCEDURE create_claim_request_found(
     p_requester_id INT,
     p_found_report_id INT,
-    p_message TEXT
+    p_message TEXT,
+    p_image_urls TEXT[]
 )
 LANGUAGE plpgsql
 AS $$
@@ -101,6 +102,8 @@ DECLARE
     v_found_creator_id INT;
     v_item_title VARCHAR(50);
     v_requester_name VARCHAR(100);
+    v_claim_id INT;
+    image_url TEXT;
 BEGIN
     -- Get the creator of the found report and item title
     SELECT creator_id, title INTO v_found_creator_id, v_item_title
@@ -129,6 +132,13 @@ BEGIN
     )
     RETURNING claim_id INTO v_claim_id;
 
+    -- Insert images
+    FOREACH image_url IN ARRAY p_image_urls
+    LOOP
+        INSERT INTO Claim_Request_Images (claim_id, image_url)
+        VALUES (v_claim_id, image_url);
+    END LOOP;
+
     -- Create notification for the found item creator
     INSERT INTO Notification (user_id, claim_id, message)
     VALUES (
@@ -139,10 +149,11 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE create_claim_request_lost(
+CREATE OR REPLACE PROCEDURE create_return_request_lost(
     p_requester_id INT,
     p_lost_report_id INT,
-    p_message TEXT
+    p_message TEXT,
+    p_image_urls TEXT[]
 )
 LANGUAGE plpgsql
 AS $$
@@ -151,6 +162,8 @@ DECLARE
     v_lost_creator_id INT;
     v_item_title VARCHAR(50);
     v_requester_name VARCHAR(100);
+    v_return_id INT;
+    image_url TEXT;
 BEGIN
     -- Get the creator of the lost report and item title
     SELECT creator_id, title INTO v_lost_creator_id, v_item_title
@@ -163,11 +176,11 @@ BEGIN
     WHERE user_id = p_requester_id;
 
     -- Insert claim request for lost item
-    INSERT INTO Claim_Request (
+    INSERT INTO Return_Request (
         requester_id, 
         lost_report_id, 
         message, 
-        claimed_at, 
+        returned_at, 
         status
     )
     VALUES (
@@ -177,6 +190,14 @@ BEGIN
         NOW(), 
         'pending'
     )
+    RETURNING return_id INTO v_return_id;
+
+    -- Insert images
+    FOREACH image_url IN ARRAY p_image_urls
+    LOOP
+        INSERT INTO Return_Request_Images (return_id, image_url)
+        VALUES (v_return_id, image_url);
+    END LOOP;
     RETURNING claim_id INTO v_claim_id;
 
     -- Create notification for the lost item creator
