@@ -84,15 +84,29 @@ export function ItemCard({ report, currentUserId, onArchive }) {
         </div>
       )}
 
-      <CardHeader className="pb-2 bg-gradient-to-br from-white to-gray-50">
+      <CardHeader className="bg-gradient-to-br from-white to-gray-50">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <CardTitle className="text-lg font-bold truncate text-gray-900">
               {report.itemName}
             </CardTitle>
-            <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium mt-0.5">
-              <Tag className="size-3" />
-              {report.category}
+            <div className="flex flex-wrap items-center justify-between w-full gap-y-1 text-xs text-gray-500 font-medium mt-4">
+              <span className="flex items-center gap-1">
+                <Tag className="size-3.5" />
+                {report.category}
+              </span>
+              {report.location && (
+                <span className="flex items-center gap-1" title={report.location}>
+                  <MapPin className="size-3.5" />
+                  <span className="truncate max-w-[100px] sm:max-w-[150px]">{report.location}</span>
+                </span>
+              )}
+              {report.date && (
+                <span className="flex items-center gap-1">
+                  <Calendar className="size-3.5" />
+                  {new Date(report.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -103,7 +117,7 @@ export function ItemCard({ report, currentUserId, onArchive }) {
         {report.type === "found" && !isOwner && report.status === "active" && (
           <Button 
             onClick={handleClaimClick}
-            className="w-full mt-2 bg-gradient-to-r from-green-500 via-green-600 to-green-700 hover:from-green-600 hover:via-green-700 hover:to-green-800 shadow-lg hover:shadow-xl transition-all duration-300 text-white font-bold py-6 text-base group rounded-xl"
+            className="w-full bg-gradient-to-r from-green-500 via-green-600 to-green-700 hover:from-green-600 hover:via-green-700 hover:to-green-800 shadow-lg hover:shadow-xl transition-all duration-300 text-white font-bold py-6 text-base group rounded-xl"
           >
             <HandHeart className="size-5 mr-2 group-hover:scale-110 transition-transform" />
             I Lost This
@@ -113,7 +127,7 @@ export function ItemCard({ report, currentUserId, onArchive }) {
         {report.type === "lost" && !isOwner && report.status === "active" && (
           <Button 
             onClick={handleClaimClick}
-            className="w-full mt-2 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 hover:from-blue-600 hover:via-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-300 text-white font-bold py-6 text-base group rounded-xl"
+            className="w-full bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 hover:from-blue-600 hover:via-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-300 text-white font-bold py-6 text-base group rounded-xl"
           >
             <HandHeart className="size-5 mr-2 group-hover:scale-110 transition-transform" />
             I Found This
@@ -125,7 +139,7 @@ export function ItemCard({ report, currentUserId, onArchive }) {
             onClick={handleArchive}
             disabled={isArchiving}
             variant="outline"
-            className="w-full mt-2 border-2 border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-4 text-sm"
+            className="w-full bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 shadow-lg hover:shadow-xl transition-all duration-300 text-white font-bold py-6 text-base group rounded-xl"
           >
             <Archive className="size-3.5 mr-2" />
             {isArchiving ? '...' : 'Archive'}

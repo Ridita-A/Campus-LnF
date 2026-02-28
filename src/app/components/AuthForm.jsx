@@ -37,8 +37,14 @@ export function AuthForm({ onLogin }) {
       }
 
       if (data && data.length > 0 && data[0].success) {
-        // console.log('Login successful, calling onLogin with:', { id: data[0].user_id, email: loginEmail });
-        onLogin({ id: data[0].user_id, email: loginEmail });
+        // Fetch user profile to get name for the session
+        try {
+          const profileRes = await fetch(`http://localhost:3000/api/users/${data[0].user_id}`);
+          const profileData = profileRes.ok ? await profileRes.json() : {};
+          onLogin({ id: data[0].user_id, email: loginEmail, name: profileData.name || '' });
+        } catch {
+          onLogin({ id: data[0].user_id, email: loginEmail, name: '' });
+        }
       } else {
         setError(data && data.length > 0 ? data[0].message : 'Invalid email or password.');
         // console.log('Login failed:', data && data.length > 0 ? data[0].message : 'Invalid email or password');

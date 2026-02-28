@@ -8,18 +8,31 @@ import { ItemCard } from "@/app/components/ItemCard.jsx";
 import { ReportForm } from "@/app/components/ReportForm.jsx";
 import { AuthForm } from "@/app/components/AuthForm.jsx";
 import { NotificationPanel } from "@/app/components/NotificationPanel.jsx";
+import { ProfilePage } from "@/app/components/ProfilePage.jsx";
 import { PlusCircle, Search, LogOut, Package } from "lucide-react";
 import { toast } from "sonner";
 
 
 
-export function Dashboard({ user, onLogout }) {
+export function Dashboard({ user: initialUser, onLogout }) {
+  const [user, setUser] = useState(initialUser);
   const [reports, setReports] = useState([]);
   const [showReportForm, setShowReportForm] = useState(null);
+  const [showProfile, setShowProfile] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [activeTab, setActiveTab] = useState("all");
   const [loading, setLoading] = useState(true);
+
+  const getInitials = (name) =>
+    (name || "?")
+      .split(" ")
+      .map((w) => w[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+
+  const handleUpdateUser = (updates) => setUser((u) => ({ ...u, ...updates }));
 
   useEffect(() => {
     fetchReports();
@@ -132,6 +145,16 @@ export function Dashboard({ user, onLogout }) {
     "Other",
   ];
 
+  if (showProfile) {
+    return (
+      <ProfilePage
+        user={user}
+        onBack={() => setShowProfile(false)}
+        onUpdateUser={handleUpdateUser}
+      />
+    );
+  }
+
   if (showReportForm) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
@@ -168,6 +191,14 @@ export function Dashboard({ user, onLogout }) {
             </div>
             <div className="flex items-center gap-3">
               <NotificationPanel userId={user.id} />
+              {/* Profile Avatar Button */}
+              <button
+                onClick={() => setShowProfile(true)}
+                title="My Profile"
+                className="size-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold text-sm shadow-md hover:shadow-lg hover:scale-105 transition-all border-2 border-blue-300 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1"
+              >
+                {getInitials(user.name)}
+              </button>
               <Button 
                 variant="outline" 
                 onClick={onLogout} 
@@ -214,7 +245,7 @@ export function Dashboard({ user, onLogout }) {
               />
             </div>
             <Select value={filterCategory} onValueChange={setFilterCategory}>
-              <SelectTrigger className="w-full sm:w-64 border-2 border-gray-200 h-12 text-base rounded-xl font-medium">
+              <SelectTrigger className="w-full sm:w-64 border-2 border-gray-200 py-5.5 h-12 text-base rounded-xl font-medium">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
@@ -231,34 +262,34 @@ export function Dashboard({ user, onLogout }) {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-8 bg-white p-1.5 rounded-xl shadow-lg border-2 border-gray-200">
+          <TabsList className="mb-6 bg-white px-2 py-5.5 rounded-xl shadow-lg border-2 border-gray-200">
             <TabsTrigger 
               value="all" 
-              className="bg-blue-50 text-blue-700 hover:bg-blue-100 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-semibold px-6 py-2.5 rounded-lg transition-all"
+              className="mr-1 bg-blue-50 text-blue-700 hover:bg-blue-100 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white font-semibold px-6 py-4 rounded-lg transition-all"
             >
               All Items
             </TabsTrigger>
             <TabsTrigger 
               value="lost" 
-              className="bg-red-50 text-red-700 hover:bg-red-100 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-red-600 data-[state=active]:text-white font-semibold px-6 py-2.5 rounded-lg transition-all"
+              className="mr-1 bg-red-50 text-red-700 hover:bg-red-100 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-red-600 data-[state=active]:text-white font-semibold px-6 py-4 rounded-lg transition-all"
             >
               Lost
             </TabsTrigger>
             <TabsTrigger 
               value="found" 
-              className="bg-green-50 text-green-700 hover:bg-green-100 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-green-600 data-[state=active]:text-white font-semibold px-6 py-2.5 rounded-lg transition-all"
+              className="mr-1 bg-green-50 text-green-700 hover:bg-green-100 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-green-600 data-[state=active]:text-white font-semibold px-6 py-4 rounded-lg transition-all"
             >
               Found
             </TabsTrigger>
             <TabsTrigger 
               value="my-reports" 
-              className="bg-purple-50 text-purple-700 hover:bg-purple-100 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white font-semibold px-6 py-2.5 rounded-lg transition-all"
+              className="mr-1 bg-purple-50 text-purple-700 hover:bg-purple-100 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white font-semibold px-6 py-4 rounded-lg transition-all"
             >
               My Reports
             </TabsTrigger>
             <TabsTrigger 
               value="archived" 
-              className="bg-gray-50 text-gray-700 hover:bg-gray-100 data-[state=active]:bg-gradient-to-r data-[state=active]:from-gray-500 data-[state=active]:to-gray-600 data-[state=active]:text-white font-semibold px-6 py-2.5 rounded-lg transition-all"
+              className="bg-gray-50 text-gray-700 hover:bg-gray-100 data-[state=active]:bg-gradient-to-r data-[state=active]:from-gray-500 data-[state=active]:to-gray-600 data-[state=active]:text-white font-semibold px-6 py-4 rounded-lg transition-all"
             >
               Archived
             </TabsTrigger>

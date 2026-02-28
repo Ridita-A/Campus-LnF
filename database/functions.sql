@@ -258,3 +258,184 @@ BEGIN
     ORDER BY rr.returned_at DESC;
 END;
 $$ LANGUAGE plpgsql;
+
+
+-- ============================================
+-- PROFILE FUNCTIONS
+-- ============================================
+
+-- Get full user profile (joins Users + Auth)
+CREATE OR REPLACE FUNCTION get_user_profile(p_user_id INT)
+RETURNS TABLE (
+    user_id INT,
+    name VARCHAR(100),
+    student_id NUMERIC(9, 0),
+    contact_number BIGINT,
+    email VARCHAR(255)
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        u.user_id,
+        u.name,
+        u.student_id,
+        u.contact_number,
+        a.email
+    FROM Users u
+    JOIN Auth a ON a.user_id = u.user_id
+    WHERE u.user_id = p_user_id;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- Update editable profile fields (name + contact_number)
+CREATE OR REPLACE FUNCTION update_user_profile(
+    p_user_id INT,
+    p_name VARCHAR(100),
+    p_contact BIGINT
+)
+RETURNS VOID AS $$
+BEGIN
+    IF p_contact IS NOT NULL AND (p_contact < 1000000000 OR p_contact > 9999999999) THEN
+        RAISE EXCEPTION 'Contact number must be a valid 10-digit number.';
+    END IF;
+
+    UPDATE Users
+    SET
+        name = COALESCE(p_name, name),
+        contact_number = COALESCE(p_contact, contact_number)
+    WHERE user_id = p_user_id;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- ============================================
+-- USER REPORT HISTORY FUNCTION
+-- ============================================
+
+CREATE OR REPLACE FUNCTION get_user_report_history(p_user_id INT)
+RETURNS TABLE (
+    history_id      INT,
+    report_type     TEXT,
+    title           VARCHAR(50),
+    description     TEXT,
+    location_name   VARCHAR(100),
+    reported_at     TIMESTAMP WITH TIME ZONE,
+    status          TEXT,
+    image_url       TEXT,
+    category        TEXT,
+    creator_name    TEXT        -- name of the original report's creator
+) AS $$
+BEGIN
+    RETURN QUERY
+
+    -- Lost reports created by user (user IS the creator)
+    SELECT
+        lr.lost_id AS history_id,
+        'lost'::TEXT AS report_type,
+        lr.title,
+        lr.description,
+        l.name AS location_name,
+        lr.lost_at AT TIME ZONE 'UTC' AS reported_at,
+        lr.status::TEXT AS status,
+        (SELECT lri.image_url
+         FROM Lost_Report_Images lri
+         WHERE lri.lost_id = lr.lost_id
+         ORDER BY lri.image_id LIMIT 1) AS image_url,
+        (SELECT t.name
+         FROM Tags t
+         JOIN Lost_Report_Tags lrt ON lrt.category_id = t.tag_id
+         WHERE lrt.lost_id = lr.lost_id
+         ORDER BY t.tag_id LIMIT 1)::TEXT AS category,
+        u.name::TEXT AS creator_name
+    FROM Lost_Report lr
+    JOIN Location l ON l.location_id = lr.last_location_id
+    JOIN Users u ON u.user_id = lr.creator_id
+    WHERE lr.creator_id = p_user_id
+
+    UNION ALL
+
+    -- Found reports created by user (user IS the creator)
+    SELECT
+        fr.found_id AS history_id,
+        'found'::TEXT AS report_type,
+        fr.title,
+        fr.description,
+        l.name AS location_name,
+        fr.found_at AT TIME ZONE 'UTC' AS reported_at,
+        fr.status::TEXT AS status,
+        (SELECT fri.image_url
+         FROM Found_Report_Images fri
+         WHERE fri.found_id = fr.found_id
+         ORDER BY fri.image_id LIMIT 1) AS image_url,
+        (SELECT t.name
+         FROM Tags t
+         JOIN Found_Report_Tags frt ON frt.category_id = t.tag_id
+         WHERE frt.found_id = fr.found_id
+         ORDER BY t.tag_id LIMIT 1)::TEXT AS category,
+        u.name::TEXT AS creator_name
+    FROM Found_Report fr
+    JOIN Location l ON l.location_id = fr.found_location_id
+    JOIN Users u ON u.user_id = fr.creator_id
+    WHERE fr.creator_id = p_user_id
+
+    UNION ALL
+
+    -- Claim requests submitted by user → creator is the found report's poster
+    SELECT
+        cr.claim_id AS history_id,
+        'claim'::TEXT AS report_type,
+        fr.title,
+        cr.message AS description,
+        l.name AS location_name,
+        cr.claimed_at AT TIME ZONE 'UTC' AS reported_at,
+        cr.status::TEXT AS status,
+        (SELECT fri.image_url
+         FROM Found_Report_Images fri
+         WHERE fri.found_id = fr.found_id
+         ORDER BY fri.image_id LIMIT 1) AS image_url,
+        (SELECT t.name
+         FROM Tags t
+         JOIN Found_Report_Tags frt ON frt.category_id = t.tag_id
+         WHERE frt.found_id = fr.found_id
+         ORDER BY t.tag_id LIMIT 1)::TEXT AS category,
+        u.name::TEXT AS creator_name
+    FROM Claim_Request cr
+    JOIN Found_Report fr ON fr.found_id = cr.found_report_id
+    JOIN Location l ON l.location_id = fr.found_location_id
+    JOIN Users u ON u.user_id = fr.creator_id
+    WHERE cr.requester_id = p_user_id
+      AND cr.found_report_id IS NOT NULL
+
+    UNION ALL
+
+    -- Return requests submitted by user → creator is the lost report's poster
+    SELECT
+        rr.return_id AS history_id,
+        'return'::TEXT AS report_type,
+        lr.title,
+        rr.message AS description,
+        l.name AS location_name,
+        rr.returned_at AT TIME ZONE 'UTC' AS reported_at,
+        rr.status::TEXT AS status,
+        (SELECT lri.image_url
+         FROM Lost_Report_Images lri
+         WHERE lri.lost_id = lr.lost_id
+         ORDER BY lri.image_id LIMIT 1) AS image_url,
+        (SELECT t.name
+         FROM Tags t
+         JOIN Lost_Report_Tags lrt ON lrt.category_id = t.tag_id
+         WHERE lrt.lost_id = lr.lost_id
+         ORDER BY t.tag_id LIMIT 1)::TEXT AS category,
+        u.name::TEXT AS creator_name
+    FROM Return_Request rr
+    JOIN Lost_Report lr ON lr.lost_id = rr.lost_report_id
+    JOIN Location l ON l.location_id = lr.last_location_id
+    JOIN Users u ON u.user_id = lr.creator_id
+    WHERE rr.requester_id = p_user_id
+
+    ORDER BY reported_at DESC NULLS LAST;
+END;
+$$ LANGUAGE plpgsql;
+
+
