@@ -102,7 +102,6 @@ DECLARE
     v_found_creator_id INT;
     v_item_title VARCHAR(50);
     v_requester_name VARCHAR(100);
-    v_claim_id INT;
     image_url TEXT;
 BEGIN
     -- Get the creator of the found report and item title
@@ -133,7 +132,7 @@ BEGIN
     RETURNING claim_id INTO v_claim_id;
 
     -- Insert images
-    FOREACH image_url IN ARRAY p_image_urls
+    FOREACH image_url IN ARRAY COALESCE(p_image_urls, ARRAY[]::TEXT[])
     LOOP
         INSERT INTO Claim_Request_Images (claim_id, image_url)
         VALUES (v_claim_id, image_url);
@@ -158,7 +157,6 @@ CREATE OR REPLACE PROCEDURE create_return_request_lost(
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    v_claim_id INT;
     v_lost_creator_id INT;
     v_item_title VARCHAR(50);
     v_requester_name VARCHAR(100);
@@ -193,18 +191,17 @@ BEGIN
     RETURNING return_id INTO v_return_id;
 
     -- Insert images
-    FOREACH image_url IN ARRAY p_image_urls
+    FOREACH image_url IN ARRAY COALESCE(p_image_urls, ARRAY[]::TEXT[])
     LOOP
         INSERT INTO Return_Request_Images (return_id, image_url)
         VALUES (v_return_id, image_url);
     END LOOP;
-    RETURNING claim_id INTO v_claim_id;
 
     -- Create notification for the lost item creator
-    INSERT INTO Notification (user_id, claim_id, message)
+    INSERT INTO Notification (user_id, return_id, message)
     VALUES (
         v_lost_creator_id,
-        v_claim_id,
+        v_return_id,
         v_requester_name || ' says they found your lost item: ' || v_item_title
     );
 END;

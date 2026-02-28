@@ -106,6 +106,7 @@ RETURNS TABLE (
     is_read BOOLEAN,
     read_at TIMESTAMP WITH TIME ZONE,
     claim_id INT,
+    return_id INT,
     requester_name VARCHAR(100),
     requester_message TEXT,
     report_type TEXT,
@@ -128,18 +129,19 @@ BEGIN
             ELSE n.read_at AT TIME ZONE 'UTC'
         END,
         n.claim_id,
-        u.name AS requester_name,
-        cr.message AS requester_message,
+        n.return_id,
+        COALESCE(cu.name, ru.name) AS requester_name,
+        COALESCE(cr.message, rr.message) AS requester_message,
         CASE
-            WHEN cr.found_report_id IS NOT NULL THEN 'found'::TEXT
-            WHEN cr.lost_report_id IS NOT NULL THEN 'lost'::TEXT
+            WHEN fr.found_id IS NOT NULL THEN 'found'::TEXT
+            WHEN COALESCE(lr_claim.lost_id, lr_return.lost_id) IS NOT NULL THEN 'lost'::TEXT
             ELSE NULL::TEXT
         END AS report_type,
-        COALESCE(cr.found_report_id, cr.lost_report_id) AS report_id,
-        COALESCE(fr.title, lr.title) AS item_title,
-        COALESCE(fr.description, lr.description) AS item_description,
-        COALESCE(fl.name, ll.name) AS location_name,
-        COALESCE(fr.found_at, lr.lost_at) AT TIME ZONE 'UTC' AS item_date,
+        COALESCE(fr.found_id, lr_claim.lost_id, lr_return.lost_id) AS report_id,
+        COALESCE(fr.title, lr_claim.title, lr_return.title) AS item_title,
+        COALESCE(fr.description, lr_claim.description, lr_return.description) AS item_description,
+        COALESCE(fl.name, ll_claim.name, ll_return.name) AS location_name,
+        COALESCE(fr.found_at, lr_claim.lost_at, lr_return.lost_at) AT TIME ZONE 'UTC' AS item_date,
         COALESCE(
             (SELECT fri.image_url
              FROM Found_Report_Images fri
@@ -148,17 +150,21 @@ BEGIN
              LIMIT 1),
             (SELECT lri.image_url
              FROM Lost_Report_Images lri
-             WHERE lri.lost_id = lr.lost_id
+             WHERE lri.lost_id = COALESCE(lr_claim.lost_id, lr_return.lost_id)
              ORDER BY lri.image_id
              LIMIT 1)
         ) AS item_image_url
     FROM Notification n
     LEFT JOIN Claim_Request cr ON n.claim_id = cr.claim_id
-    LEFT JOIN Users u ON cr.requester_id = u.user_id
+    LEFT JOIN Return_Request rr ON n.return_id = rr.return_id
+    LEFT JOIN Users cu ON cr.requester_id = cu.user_id
+    LEFT JOIN Users ru ON rr.requester_id = ru.user_id
     LEFT JOIN Found_Report fr ON cr.found_report_id = fr.found_id
-    LEFT JOIN Lost_Report lr ON cr.lost_report_id = lr.lost_id
+    LEFT JOIN Lost_Report lr_claim ON cr.lost_report_id = lr_claim.lost_id
+    LEFT JOIN Lost_Report lr_return ON rr.lost_report_id = lr_return.lost_id
     LEFT JOIN Location fl ON fr.found_location_id = fl.location_id
-    LEFT JOIN Location ll ON lr.last_location_id = ll.location_id
+    LEFT JOIN Location ll_claim ON lr_claim.last_location_id = ll_claim.location_id
+    LEFT JOIN Location ll_return ON lr_return.last_location_id = ll_return.location_id
     WHERE n.user_id = p_user_id
     ORDER BY n.created_at DESC, n.notification_id DESC;
 END;

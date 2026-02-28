@@ -30,6 +30,7 @@ CREATE TABLE Notification (
     notification_id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
     claim_id INT,
+    return_id INT,
     message TEXT,
     created_at TIMESTAMP,
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
