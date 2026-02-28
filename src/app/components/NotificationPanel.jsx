@@ -211,7 +211,7 @@ export function NotificationPanel({ userId }) {
           </DialogHeader>
 
           {selectedNotification && (
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
               {selectedNotification.item_image_url && (
                 <img
                   src={selectedNotification.item_image_url}
@@ -271,6 +271,46 @@ export function NotificationPanel({ userId }) {
                   {selectedNotification.requester_message || "No message provided."}
                 </p>
               </div>
+
+              {/* Requester Submitted Images */}
+              {selectedNotification.requester_image_urls && selectedNotification.requester_image_urls.length > 0 && (
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between px-1">
+                    <p className="text-sm font-bold text-gray-800">Requester Proof Images</p>
+                    <Badge variant="secondary" className="text-[10px] font-bold">
+                      {selectedNotification.requester_image_urls.length} Photos
+                    </Badge>
+                  </div>
+                  <div className="relative group">
+                    <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scroll-smooth custom-scrollbar">
+                      {selectedNotification.requester_image_urls.map((url, idx) => (
+                        <div 
+                          key={idx} 
+                          className="w-full aspect-video shrink-0 snap-center rounded-2xl overflow-hidden border-2 border-gray-100 shadow-md bg-black/5"
+                        >
+                          <img
+                            src={url}
+                            alt={`Requester proof ${idx + 1}`}
+                            className="w-full h-full object-contain cursor-pointer hover:scale-105 transition-transform duration-500"
+                            onClick={() => window.open(url, '_blank')}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    {/* Visual cue for scrolling if more than 1 image */}
+                    {selectedNotification.requester_image_urls.length > 1 && (
+                      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-1.5 p-1.5 bg-black/20 backdrop-blur-md rounded-full">
+                        {selectedNotification.requester_image_urls.map((_, idx) => (
+                          <div key={idx} className="size-1.5 rounded-full bg-white/60" />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-center text-gray-400 font-medium italic">
+                    ← Swipe to view more proof images →
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

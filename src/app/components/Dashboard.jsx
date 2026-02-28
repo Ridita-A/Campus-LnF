@@ -38,7 +38,8 @@ export function Dashboard({ user, onLogout }) {
 
       // Transform lost reports
       const lostReports = lostData.map(report => ({
-        id: report.lost_id,
+        id: `lost-${report.lost_id}`,
+        dbId: report.lost_id,
         type: 'lost',
         userId: report.creator_id,
         userName: report.user_name,
@@ -49,12 +50,14 @@ export function Dashboard({ user, onLogout }) {
         date: report.lost_at,
         status: report.status,
         imageUrl: report.image_urls?.[0] || null,
+        imageUrls: report.image_urls || [],
         tags: report.tags || []
       }));
 
       // Transform found reports
       const foundReports = foundData.map(report => ({
-        id: report.found_id,
+        id: `found-${report.found_id}`,
+        dbId: report.found_id,
         type: 'found',
         userId: report.creator_id,
         userName: report.user_name,
@@ -65,6 +68,7 @@ export function Dashboard({ user, onLogout }) {
         date: report.found_at,
         status: report.status,
         imageUrl: report.image_urls?.[0] || null,
+        imageUrls: report.image_urls || [],
         tags: report.tags || []
       }));
 
