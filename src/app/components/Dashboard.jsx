@@ -49,6 +49,7 @@ export function Dashboard({ user, onLogout }) {
         date: report.lost_at,
         status: report.status,
         imageUrl: report.image_urls?.[0] || null,
+        imageUrls: report.image_urls || [],
         tags: report.tags || []
       }));
 
@@ -65,6 +66,7 @@ export function Dashboard({ user, onLogout }) {
         date: report.found_at,
         status: report.status,
         imageUrl: report.image_urls?.[0] || null,
+        imageUrls: report.image_urls || [],
         tags: report.tags || []
       }));
 

@@ -5,15 +5,18 @@ import { Button } from "@/app/components/ui/button.jsx";
 import { MapPin, Calendar, User, CheckCircle, Tag, HandHeart, Archive } from "lucide-react";
 import ImageWithFallback from "@/app/components/ui/ImageWithFallback.jsx";
 import { ClaimModal } from "@/app/components/ClaimModal.jsx";
+import { ItemDetailModal } from "@/app/components/ItemDetailModal.jsx";
 import { toast } from "sonner";
 
 export function ItemCard({ report, currentUserId, onArchive }) {
   const isOwner = report.userId === currentUserId;
   const [showClaimModal, setShowClaimModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
 
-  const handleArchive = async () => {
+  const handleArchive = async (e) => {
+    e.stopPropagation();
     setIsArchiving(true);
     try {
       const endpoint = report.type === 'lost' 
@@ -36,9 +39,17 @@ export function ItemCard({ report, currentUserId, onArchive }) {
     }
   };
 
+  const handleClaimClick = (e) => {
+    e.stopPropagation();
+    setShowClaimModal(true);
+  };
+
   return (
     <>
-      <Card className="group overflow-hidden hover:shadow-2xl transition-all duration-300 border-2 hover:border-blue-300 hover:-translate-y-1">
+      <Card 
+        onClick={() => setShowDetailModal(true)}
+        className="group overflow-hidden hover:shadow-2xl transition-all duration-300 border-2 hover:border-blue-300 hover:-translate-y-1 cursor-pointer"
+      >
       {/* Image Section */}
       {report.imageUrl && (
         <div className="relative h-52 w-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
@@ -73,115 +84,69 @@ export function ItemCard({ report, currentUserId, onArchive }) {
         </div>
       )}
 
-      <CardHeader className="pb-3 bg-gradient-to-br from-white to-gray-50">
+      <CardHeader className="pb-2 bg-gradient-to-br from-white to-gray-50">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-xl font-bold truncate text-gray-900">
+            <CardTitle className="text-lg font-bold truncate text-gray-900">
               {report.itemName}
             </CardTitle>
-            <CardDescription className="mt-1.5 flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium mt-0.5">
               <Tag className="size-3" />
-              <span className="font-medium">{report.category}</span>
-            </CardDescription>
+              {report.category}
+            </div>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-3.5 pt-4">
-        {/* Description */}
-        <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-          <p className="text-sm text-gray-700 line-clamp-3 leading-relaxed">{report.description}</p>
+      <CardContent className="space-y-2 pt-2">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 p-1.5 rounded-md border border-gray-100">
+            <MapPin className="size-3 text-green-500 shrink-0" />
+            <span className="truncate">{report.location}</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 p-1.5 rounded-md border border-gray-100">
+            <Calendar className="size-3 text-purple-500 shrink-0" />
+            <span className="truncate">{new Date(report.date).toLocaleDateString('en-US', { 
+              month: 'short', 
+              day: 'numeric'
+            })}</span>
+          </div>
         </div>
 
-        {/* User Info */}
-        <div className="flex items-center gap-2.5 text-sm text-gray-700 bg-blue-50 rounded-lg p-2.5 border border-blue-100">
-          <div className="bg-blue-500 rounded-full p-1.5">
-            <User className="size-3.5 text-white" />
-          </div>
-          <span className="truncate font-semibold">{report.userName}</span>
-        </div>
-
-        {/* Location */}
-        <div className="flex items-center gap-2.5 text-sm text-gray-700 bg-green-50 rounded-lg p-2.5 border border-green-100">
-          <div className="bg-green-500 rounded-full p-1.5">
-            <MapPin className="size-3.5 text-white" />
-          </div>
-          <span className="truncate font-medium">{report.location}</span>
-        </div>
-
-        {/* Date */}
-        <div className="flex items-center gap-2.5 text-sm text-gray-700 bg-purple-50 rounded-lg p-2.5 border border-purple-100">
-          <div className="bg-purple-500 rounded-full p-1.5">
-            <Calendar className="size-3.5 text-white" />
-          </div>
-          <span className="font-medium">{new Date(report.date).toLocaleDateString('en-US', { 
-            month: 'short', 
-            day: 'numeric', 
-            year: 'numeric' 
-          })}</span>
-        </div>
-
-        {/* Tags */}
-        {report.tags && report.tags.length > 0 && (
-          <div className="flex items-start gap-2 pt-2 border-t-2 border-gray-200">
-            <div className="flex flex-wrap gap-1.5">
-              {report.tags.map((tag, idx) => (
-                <Badge 
-                  key={idx} 
-                  variant="secondary" 
-                  className="text-xs px-2.5 py-1 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 transition-all cursor-default font-medium"
-                >
-                  #{tag}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Claim Buttons with enhanced styling */}
-        {/* For FOUND items: User can claim if they lost it */}
+        {/* Claim Buttons */}
         {report.type === "found" && !isOwner && report.status === "active" && (
           <Button 
-            onClick={() => setShowClaimModal(true)}
-            className="w-full mt-4 bg-gradient-to-r from-green-500 via-green-600 to-green-700 hover:from-green-600 hover:via-green-700 hover:to-green-800 shadow-lg hover:shadow-xl transition-all duration-300 text-white font-bold py-6 text-base group"
+            onClick={handleClaimClick}
+            className="w-full mt-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-md transition-all text-white font-bold py-4 text-sm"
           >
-            <HandHeart className="size-5 mr-2 group-hover:scale-110 transition-transform" />
-            I Lost This Item
+            I Lost This
           </Button>
         )}
         
-        {/* For LOST items: User can notify owner they found it */}
         {report.type === "lost" && !isOwner && report.status === "active" && (
           <Button 
-            onClick={() => setShowClaimModal(true)}
-            className="w-full mt-4 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 hover:from-blue-600 hover:via-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-300 text-white font-bold py-6 text-base group"
+            onClick={handleClaimClick}
+            className="w-full mt-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md transition-all text-white font-bold py-4 text-sm"
           >
-            <HandHeart className="size-5 mr-2 group-hover:scale-110 transition-transform" />
-            I Found This Item
+            I Found This
           </Button>
         )}
         
-        {/* Owner badge and archive button */}
         {isOwner && report.status !== "archived" && (
-          <div className="mt-4 space-y-2">
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-lg p-3 text-center">
-              <p className="text-sm font-semibold text-purple-700">✨ Your Report</p>
-            </div>
-            <Button
-              onClick={handleArchive}
-              disabled={isArchiving}
-              className="w-full bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 group"
-            >
-              <Archive className="size-4 mr-2 group-hover:scale-110 transition-transform" />
-              {isArchiving ? 'Archiving...' : 'Archive Item'}
-            </Button>
-          </div>
+          <Button
+            onClick={handleArchive}
+            disabled={isArchiving}
+            variant="outline"
+            className="w-full mt-2 border-2 border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-4 text-sm"
+          >
+            <Archive className="size-3.5 mr-2" />
+            {isArchiving ? '...' : 'Archive'}
+          </Button>
         )}
         
-        {/* Archived badge */}
         {report.status === "archived" && (
-          <div className="mt-4 bg-gray-100 border-2 border-gray-300 rounded-lg p-3 text-center">
-            <p className="text-sm font-semibold text-gray-600">📦 Archived</p>
+          <div className="mt-2 bg-gray-100 rounded-md p-2 text-center">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Archived</p>
           </div>
         )}
       </CardContent>
@@ -192,6 +157,12 @@ export function ItemCard({ report, currentUserId, onArchive }) {
       onClose={() => setShowClaimModal(false)}
       report={report}
       userId={currentUserId}
+    />
+
+    <ItemDetailModal
+      isOpen={showDetailModal}
+      onClose={() => setShowDetailModal(false)}
+      report={report}
     />
     </>
   );
