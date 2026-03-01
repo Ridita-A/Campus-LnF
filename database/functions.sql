@@ -324,7 +324,8 @@ RETURNS TABLE (
     status          TEXT,
     image_url       TEXT,
     category        TEXT,
-    creator_name    TEXT        -- name of the original report's creator
+    creator_name    TEXT,      
+    creator_id      INT         
 ) AS $$
 BEGIN
     RETURN QUERY
@@ -347,7 +348,8 @@ BEGIN
          JOIN Lost_Report_Tags lrt ON lrt.category_id = t.tag_id
          WHERE lrt.lost_id = lr.lost_id
          ORDER BY t.tag_id LIMIT 1)::TEXT AS category,
-        u.name::TEXT AS creator_name
+        u.name::TEXT AS creator_name,
+        u.user_id AS creator_id
     FROM Lost_Report lr
     JOIN Location l ON l.location_id = lr.last_location_id
     JOIN Users u ON u.user_id = lr.creator_id
@@ -373,7 +375,8 @@ BEGIN
          JOIN Found_Report_Tags frt ON frt.category_id = t.tag_id
          WHERE frt.found_id = fr.found_id
          ORDER BY t.tag_id LIMIT 1)::TEXT AS category,
-        u.name::TEXT AS creator_name
+        u.name::TEXT AS creator_name,
+        u.user_id AS creator_id
     FROM Found_Report fr
     JOIN Location l ON l.location_id = fr.found_location_id
     JOIN Users u ON u.user_id = fr.creator_id
@@ -399,7 +402,8 @@ BEGIN
          JOIN Found_Report_Tags frt ON frt.category_id = t.tag_id
          WHERE frt.found_id = fr.found_id
          ORDER BY t.tag_id LIMIT 1)::TEXT AS category,
-        u.name::TEXT AS creator_name
+        u.name::TEXT AS creator_name,
+        u.user_id AS creator_id
     FROM Claim_Request cr
     JOIN Found_Report fr ON fr.found_id = cr.found_report_id
     JOIN Location l ON l.location_id = fr.found_location_id
@@ -427,7 +431,8 @@ BEGIN
          JOIN Lost_Report_Tags lrt ON lrt.category_id = t.tag_id
          WHERE lrt.lost_id = lr.lost_id
          ORDER BY t.tag_id LIMIT 1)::TEXT AS category,
-        u.name::TEXT AS creator_name
+        u.name::TEXT AS creator_name,
+        u.user_id AS creator_id
     FROM Return_Request rr
     JOIN Lost_Report lr ON lr.lost_id = rr.lost_report_id
     JOIN Location l ON l.location_id = lr.last_location_id

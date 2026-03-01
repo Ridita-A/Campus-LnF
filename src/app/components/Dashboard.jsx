@@ -283,7 +283,7 @@ export function Dashboard({ user: initialUser, onLogout }) {
             </TabsTrigger>
             <TabsTrigger 
               value="my-reports" 
-              className="mr-1 bg-purple-50 text-purple-700 hover:bg-purple-100 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white font-semibold px-6 py-4 rounded-lg transition-all"
+              className="mr-1 bg-pink-50 text-pink-700 hover:bg-pink-100 data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-400 data-[state=active]:to-pink-500 data-[state=active]:text-white font-semibold px-6 py-4 rounded-lg transition-all"
             >
               My Reports
             </TabsTrigger>

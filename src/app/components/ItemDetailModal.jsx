@@ -1,33 +1,11 @@
-import React from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/app/components/ui/dialog.jsx";
+import React, { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, } from "@/app/components/ui/dialog.jsx";
 import { Badge } from "@/app/components/ui/badge.jsx";
 import { Button } from "@/app/components/ui/button.jsx";
-import { 
-  MapPin, 
-  Calendar, 
-  User, 
-  Tag, 
-  Info, 
-  ChevronLeft, 
-  ChevronRight,
-  Clock,
-  HandHeart
-} from "lucide-react";
+import { MapPin, Calendar, User, Tag, Info, ChevronLeft, ChevronRight, Clock, HandHeart } from "lucide-react";
 import ImageWithFallback from "@/app/components/ui/ImageWithFallback.jsx";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/app/components/ui/carousel.jsx";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, } from "@/app/components/ui/carousel.jsx";
+import { ReporterProfileModal } from "@/app/components/ReporterProfileModal.jsx";
 
 export function ItemDetailModal({ isOpen, onClose, report, currentUserId, onClaim }) {
   if (!report) return null;
@@ -37,8 +15,11 @@ export function ItemDetailModal({ isOpen, onClose, report, currentUserId, onClai
     ? report.imageUrls 
     : (report.imageUrl ? [report.imageUrl] : []);
 
+  const [isReporterProfileOpen, setIsReporterProfileOpen] = useState(false);
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] p-0 overflow-hidden flex flex-col border-none shadow-2xl">
         <DialogHeader className="p-6 pb-2 pr-12 bg-white">
           <div className="flex flex-wrap items-center gap-3">
@@ -108,13 +89,24 @@ export function ItemDetailModal({ isOpen, onClose, report, currentUserId, onClai
 
             {/* Details List */}
             <div className="space-y-3">
-              <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border-2 border-blue-50 shadow-sm">
+              <div 
+                onClick={() => {
+                  if (report.userId !== currentUserId) {
+                    setIsReporterProfileOpen(true);
+                  }
+                }}
+                className={`flex items-center gap-4 p-4 bg-white rounded-2xl border-2 border-blue-50 transition-all ${
+                  report.userId !== currentUserId
+                    ? 'hover:border-blue-200 hover:shadow-md cursor-pointer active:scale-[0.98]'
+                    : 'shadow-sm'
+                }`}
+              >
                 <div className="bg-blue-500/10 p-3 rounded-2xl shrink-0">
                   <User className="size-5 text-blue-600" />
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-0.5">Reported By</p>
-                  <p className="text-gray-900 font-bold text-lg">{report.userName}</p>
+                  <p className={`text-gray-900 font-bold text-lg ${report.userId !== currentUserId ? 'hover:underline decoration-blue-500 decoration-2 underline-offset-2' : ''}`}>{report.userName}</p>
                 </div>
               </div>
 
@@ -193,5 +185,14 @@ export function ItemDetailModal({ isOpen, onClose, report, currentUserId, onClai
         )}
       </DialogContent>
     </Dialog>
+
+      {isReporterProfileOpen && (
+        <ReporterProfileModal
+          isOpen={isReporterProfileOpen}
+          onClose={() => setIsReporterProfileOpen(false)}
+          userId={report.userId}
+        />
+      )}
+    </>
   );
 }

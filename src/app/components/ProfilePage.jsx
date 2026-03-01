@@ -4,21 +4,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Badge } from "@/app/components/ui/badge.jsx";
 import { ItemDetailModal } from "@/app/components/ItemDetailModal.jsx";
-import {
-  ArrowLeft,
-  User,
-  Mail,
-  Phone,
-  IdCard,
-  Pencil,
-  Save,
-  X,
-  Package,
-  ClipboardList,
-  HandHeart,
-  RotateCcw,
-  Search,
-} from "lucide-react";
+import { ArrowLeft, User, Mail, Phone, IdCard, Pencil, Save, X, Package, ClipboardList, HandHeart, RotateCcw, Search, Archive, } from "lucide-react";
 import { toast } from "sonner";
 
 const TYPE_CONFIG = {
@@ -43,8 +29,8 @@ const TYPE_CONFIG = {
   return: {
     label: "Return Request",
     icon: RotateCcw,
-    color: "bg-purple-100 text-purple-700 border-purple-200",
-    dot: "bg-purple-500",
+    color: "bg-orange-100 text-orange-700 border-orange-200",
+    dot: "bg-orange-500",
   },
 };
 
@@ -107,7 +93,7 @@ export function ProfilePage({ user, onBack, onUpdateUser }) {
     imageUrl: item.image_url || null,
     imageUrls: item.image_url ? [item.image_url] : [],
     category: item.category,
-    userId: user.id,
+    userId: item.creator_id || user.id,
     userName: item.creator_name || "",
   });
 
@@ -179,6 +165,27 @@ export function ProfilePage({ user, onBack, onUpdateUser }) {
     }
   };
 
+  const handleArchive = async (e, item) => {
+    e.stopPropagation();
+    try {
+      const endpoint = item.report_type === 'lost' 
+        ? `http://localhost:3000/api/archive/lost/${item.history_id}`
+        : `http://localhost:3000/api/archive/found/${item.history_id}`;
+
+      const response = await fetch(endpoint, { method: 'POST' });
+
+      if (!response.ok) {
+        throw new Error('Failed to archive item');
+      }
+
+      toast.success('Item archived successfully!');
+      fetchHistory(); // Refresh the list
+    } catch (error) {
+      console.error('Error archiving item:', error);
+      toast.error('Failed to archive item');
+    }
+  };
+
   const handleCancelEdit = () => {
     setEditName(profile?.name || "");
     setEditContact(profile?.contact_number?.toString() || "");
@@ -188,7 +195,11 @@ export function ProfilePage({ user, onBack, onUpdateUser }) {
   const filteredHistory =
     historyFilter === "all"
       ? history
-      : history.filter((h) => h.report_type === historyFilter);
+      : historyFilter === "archived"
+      ? history.filter((h) => h.status === "archived")
+      : history.filter(
+          (h) => h.report_type === historyFilter && h.status !== "archived"
+        );
 
   const getInitials = (name) =>
     (name || "?")
@@ -371,11 +382,12 @@ export function ProfilePage({ user, onBack, onUpdateUser }) {
               {/* Filter tabs — dashboard style */}
               <div className="flex gap-1 bg-white p-1.5 rounded-xl shadow border-2 border-gray-200 flex-wrap">
                 {[
-                  { value: "all",    label: "All",     base: "bg-blue-50 text-blue-700 hover:bg-blue-100",      activeGrad: "linear-gradient(to right, #3b82f6, #2563eb)" },
-                  { value: "lost",   label: "Lost",    base: "bg-red-50 text-red-700 hover:bg-red-100",          activeGrad: "linear-gradient(to right, #ef4444, #dc2626)" },
-                  { value: "found",  label: "Found",   base: "bg-green-50 text-green-700 hover:bg-green-100",    activeGrad: "linear-gradient(to right, #22c55e, #16a34a)" },
-                  { value: "claim",  label: "Claims",  base: "bg-purple-50 text-purple-700 hover:bg-purple-100", activeGrad: "linear-gradient(to right, #a855f7, #9333ea)" },
-                  { value: "return", label: "Returns", base: "bg-gray-50 text-gray-700 hover:bg-gray-100",       activeGrad: "linear-gradient(to right, #6b7280, #4b5563)" },
+                  { value: "all",      label: "All",      base: "bg-blue-50 text-blue-700 hover:bg-blue-100",      activeGrad: "linear-gradient(to right, #3b82f6, #2563eb)" },
+                  { value: "lost",     label: "Lost",     base: "bg-red-50 text-red-700 hover:bg-red-100",          activeGrad: "linear-gradient(to right, #ef4444, #dc2626)" },
+                  { value: "found",    label: "Found",    base: "bg-green-50 text-green-700 hover:bg-green-100",    activeGrad: "linear-gradient(to right, #22c55e, #16a34a)" },
+                  { value: "claim",    label: "Claims",   base: "bg-purple-50 text-purple-700 hover:bg-purple-100", activeGrad: "linear-gradient(to right, #a855f7, #9333ea)" },
+                  { value: "return",   label: "Returns",  base: "bg-orange-50 text-orange-700 hover:bg-orange-100", activeGrad: "linear-gradient(to right, #f97316, #ea580c)" },
+                  { value: "archived", label: "Archived", base: "bg-slate-100 text-slate-700 hover:bg-slate-200",   activeGrad: "linear-gradient(to right, #475569, #334155)" },
                 ].map((f) => {
                   const isActive = historyFilter === f.value;
                   return (
@@ -462,11 +474,24 @@ export function ProfilePage({ user, onBack, onUpdateUser }) {
                         </div>
                       </div>
 
-                      {/* Chevron hint */}
-                      <div className="shrink-0 self-center text-gray-300 group-hover:text-blue-400 transition-colors">
-                        <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
+                      {/* Actions mapped to item state */}
+                      <div className="shrink-0 self-center flex items-center gap-2">
+                        {item.status !== "archived" && (item.report_type === "lost" || item.report_type === "found") && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={(e) => handleArchive(e, item)}
+                            className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-gray-800 hover:bg-gray-200 transition-all font-semibold"
+                          >
+                            <Archive className="size-4 mr-1.5" />
+                            Archive
+                          </Button>
+                        )}
+                        <div className="text-gray-300 group-hover:text-blue-400 transition-colors">
+                          <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
                       </div>
                     </div>
                   );
