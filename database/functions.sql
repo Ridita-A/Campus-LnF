@@ -109,6 +109,7 @@ RETURNS TABLE (
     return_id INT,
     requester_name VARCHAR(100),
     requester_message TEXT,
+    request_status TEXT, 
     report_type TEXT,
     report_id INT,
     item_title VARCHAR(50),
@@ -134,6 +135,7 @@ BEGIN
         n.return_id,
         COALESCE(cu.name, ru.name) AS requester_name,
         COALESCE(cr.message, rr.message) AS requester_message,
+        COALESCE(cr.status::TEXT, rr.status::TEXT) AS request_status, 
         CASE
             WHEN fr.found_id IS NOT NULL THEN 'found'::TEXT
             WHEN lr_return.lost_id IS NOT NULL THEN 'lost'::TEXT

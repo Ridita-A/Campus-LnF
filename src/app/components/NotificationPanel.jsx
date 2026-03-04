@@ -210,7 +210,7 @@ export function NotificationPanel({ userId }) {
 
                       <div className="flex items-center gap-1 shrink-0">
                         {!notification.is_read && (
-                          (notification.claim_id || notification.return_id) ? (
+                          (notification.claim_id || notification.return_id) && notification.request_status === 'pending' ? (
                             <>
                               <Button
                                 variant="ghost"
@@ -389,7 +389,7 @@ export function NotificationPanel({ userId }) {
 
           <DialogFooter className="gap-2">
             {selectedNotification && !selectedNotification.is_read && (
-              (selectedNotification.claim_id || selectedNotification.return_id) ? (
+              ((selectedNotification.claim_id || selectedNotification.return_id) && selectedNotification.request_status === 'pending') ? (
                 <>
                   <Button
                     onClick={async () => {
@@ -416,7 +416,7 @@ export function NotificationPanel({ userId }) {
                 <Button
                   onClick={async () => {
                     await handleMarkAsRead(selectedNotification.notification_id);
-                    setSelectedNotification((prev) => prev ? { ...prev, is_read: true } : prev);
+                    setIsDetailOpen(false);
                   }}
                   className="bg-green-600 hover:bg-green-700 text-white"
                 >
