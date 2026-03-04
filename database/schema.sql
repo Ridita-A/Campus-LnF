@@ -19,7 +19,7 @@ CREATE TABLE Auth (
     user_id INT UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password TEXT NOT NULL,
-    last_login TIMESTAMP,
+    last_login TIMESTAMPTZ,
     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
 );
 
@@ -32,9 +32,9 @@ CREATE TABLE Notification (
     claim_id INT,
     return_id INT,
     message TEXT,
-    created_at TIMESTAMP,
+    created_at TIMESTAMPTZ,
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
-    read_at TIMESTAMP,
+    read_at TIMESTAMPTZ,
     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
 );
 
@@ -53,7 +53,8 @@ CREATE TABLE Lost_Report (
     last_location_id INT NOT NULL,
     title VARCHAR(50),
     description TEXT,
-    lost_at TIMESTAMP,
+    lost_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ,
     status report_status_enum,
     FOREIGN KEY (creator_id) REFERENCES Users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (last_location_id) REFERENCES Location(location_id) 
@@ -67,7 +68,8 @@ CREATE TABLE Found_Report (
     found_location_id INT NOT NULL,
     title VARCHAR(50),
     description TEXT,
-    found_at TIMESTAMP,
+    found_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ,
     status report_status_enum,
     FOREIGN KEY (creator_id) REFERENCES Users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (found_location_id) REFERENCES Location(location_id) 
@@ -75,23 +77,15 @@ CREATE TABLE Found_Report (
 
 
 -- CLAIM REQUEST
--- Supports claims for both found items and lost items
 CREATE TABLE Claim_Request (
     claim_id SERIAL PRIMARY KEY,
     requester_id INT NOT NULL,
-    found_report_id INT,
-    lost_report_id INT,
+    found_report_id INT NOT NULL,
     message TEXT,
-    claimed_at TIMESTAMP,
+    claimed_at TIMESTAMPTZ,
     status request_status_enum,
     FOREIGN KEY (requester_id) REFERENCES Users(user_id) ON DELETE CASCADE,
-    FOREIGN KEY (found_report_id) REFERENCES Found_Report(found_id) ON DELETE CASCADE,
-    FOREIGN KEY (lost_report_id) REFERENCES Lost_Report(lost_id) ON DELETE CASCADE,
-    -- Ensure either found_report_id or lost_report_id is set (not both, not neither)
-    CHECK (
-        (found_report_id IS NOT NULL AND lost_report_id IS NULL) OR
-        (found_report_id IS NULL AND lost_report_id IS NOT NULL)
-    )
+    FOREIGN KEY (found_report_id) REFERENCES Found_Report(found_id) ON DELETE CASCADE
 );
 
 
@@ -101,7 +95,7 @@ CREATE TABLE Return_Request (
     requester_id INT NOT NULL,
     lost_report_id INT NOT NULL,
     message TEXT,
-    returned_at TIMESTAMP,
+    returned_at TIMESTAMPTZ,
     status request_status_enum,
     FOREIGN KEY (requester_id) REFERENCES Users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (lost_report_id) REFERENCES Lost_Report(lost_id) ON DELETE CASCADE

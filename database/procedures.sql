@@ -7,7 +7,7 @@ CREATE OR REPLACE PROCEDURE create_lost_report(
     p_last_location_id INT,
     p_title VARCHAR(50),
     p_description TEXT,
-    p_lost_at TIMESTAMP,
+    p_lost_at TIMESTAMPTZ,
     p_tags INT[],
     p_image_urls TEXT[]
 )
@@ -48,7 +48,7 @@ CREATE OR REPLACE PROCEDURE create_found_report(
     p_found_location_id INT,
     p_title VARCHAR(50),
     p_description TEXT,
-    p_found_at TIMESTAMP,
+    p_found_at TIMESTAMPTZ,
     p_tags INT[],
     p_image_urls TEXT[]
 )
@@ -138,13 +138,6 @@ BEGIN
         VALUES (v_claim_id, image_url);
     END LOOP;
 
-    -- Create notification for the found item creator
-    INSERT INTO Notification (user_id, claim_id, message)
-    VALUES (
-        v_found_creator_id,
-        v_claim_id,
-        v_requester_name || ' has requested to claim your found item: ' || v_item_title
-    );
 END;
 $$;
 
@@ -197,13 +190,6 @@ BEGIN
         VALUES (v_return_id, image_url);
     END LOOP;
 
-    -- Create notification for the lost item creator
-    INSERT INTO Notification (user_id, return_id, message)
-    VALUES (
-        v_lost_creator_id,
-        v_return_id,
-        v_requester_name || ' says they found your lost item: ' || v_item_title
-    );
 END;
 $$;
 
@@ -230,7 +216,7 @@ BEGIN
     UPDATE Notification
     SET
         is_read = TRUE,
-        read_at = COALESCE(read_at, NOW() AT TIME ZONE 'UTC')
+        read_at = COALESCE(read_at, NOW())
     WHERE notification_id = p_notification_id
       AND user_id = p_user_id;
 
@@ -262,5 +248,32 @@ BEGIN
     UPDATE Found_Report
     SET status = 'archived'
     WHERE found_id = p_found_id;
+END;
+$$;
+
+-- ============================================
+-- AUTO-ARCHIVE PROCEDURE
+-- ============================================
+CREATE OR REPLACE PROCEDURE auto_archive_inactive_reports()
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    -- Archive active Lost Reports older than 1 month with no associated return requests
+    UPDATE Lost_Report
+    SET status = 'archived'
+    WHERE status = 'active'
+      AND created_at <= NOW() - INTERVAL '1 month'
+      AND NOT EXISTS (
+          SELECT 1 FROM Return_Request WHERE lost_report_id = Lost_Report.lost_id
+      );
+
+    -- Archive active Found Reports older than 1 month with no associated claim requests
+    UPDATE Found_Report
+    SET status = 'archived'
+    WHERE status = 'active'
+      AND created_at <= NOW() - INTERVAL '1 month'
+      AND NOT EXISTS (
+          SELECT 1 FROM Claim_Request WHERE found_report_id = Found_Report.found_id
+      );
 END;
 $$;

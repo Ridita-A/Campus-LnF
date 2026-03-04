@@ -1,19 +1,94 @@
--- Reusable timestamp trigger for Notification inserts.
--- Requires Notification.created_at to exist in the schema.
-CREATE OR REPLACE FUNCTION set_timestamps()
+-- ============================================
+-- LOST AND FOUND TIMESTAMP TRIGGERS
+-- ============================================
+
+CREATE OR REPLACE FUNCTION set_created_at_timestamp()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.created_at IS NULL THEN
-        NEW.created_at = NOW() AT TIME ZONE 'UTC';
-    END IF;
-
+    NEW.created_at = NOW();
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS trg_set_timestamps_notification ON Notification;
-
-CREATE TRIGGER trg_set_timestamps_notification
-BEFORE INSERT ON Notification
+DROP TRIGGER IF EXISTS trigger_set_lost_created_at ON Lost_Report;
+CREATE TRIGGER trigger_set_lost_created_at
+BEFORE INSERT ON Lost_Report
 FOR EACH ROW
-EXECUTE FUNCTION set_timestamps();
+EXECUTE FUNCTION set_created_at_timestamp();
+
+DROP TRIGGER IF EXISTS trigger_set_found_created_at ON Found_Report;
+CREATE TRIGGER trigger_set_found_created_at
+BEFORE INSERT ON Found_Report
+FOR EACH ROW
+EXECUTE FUNCTION set_created_at_timestamp();
+
+-- ============================================
+-- NOTIFICATION TRIGGERS
+-- ============================================
+
+-- Trigger to notify found item creators when a claim request is made
+CREATE OR REPLACE FUNCTION notify_claim_request()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_found_creator_id INT;
+    v_item_title VARCHAR(50);
+    v_requester_name VARCHAR(100);
+BEGIN
+    SELECT creator_id, title INTO v_found_creator_id, v_item_title
+    FROM Found_Report
+    WHERE found_id = NEW.found_report_id;
+
+    SELECT name INTO v_requester_name
+    FROM Users
+    WHERE user_id = NEW.requester_id;
+
+    INSERT INTO Notification (user_id, claim_id, message, created_at)
+    VALUES (
+        v_found_creator_id,
+        NEW.claim_id,
+        v_requester_name || ' has requested to claim your found item: ' || v_item_title,
+        NOW()
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_notify_claim_request ON Claim_Request;
+CREATE TRIGGER trigger_notify_claim_request
+AFTER INSERT ON Claim_Request
+FOR EACH ROW
+EXECUTE FUNCTION notify_claim_request();
+
+
+-- Trigger to notify lost item creators when a return request is made
+CREATE OR REPLACE FUNCTION notify_return_request()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_lost_creator_id INT;
+    v_item_title VARCHAR(50);
+    v_requester_name VARCHAR(100);
+BEGIN
+    SELECT creator_id, title INTO v_lost_creator_id, v_item_title
+    FROM Lost_Report
+    WHERE lost_id = NEW.lost_report_id;
+
+    SELECT name INTO v_requester_name
+    FROM Users
+    WHERE user_id = NEW.requester_id;
+
+    INSERT INTO Notification (user_id, return_id, message, created_at)
+    VALUES (
+        v_lost_creator_id,
+        NEW.return_id,
+        v_requester_name || ' says they found your lost item: ' || v_item_title,
+        NOW()
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_notify_return_request ON Return_Request;
+CREATE TRIGGER trigger_notify_return_request
+AFTER INSERT ON Return_Request
+FOR EACH ROW
+EXECUTE FUNCTION notify_return_request();

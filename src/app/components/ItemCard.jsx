@@ -48,11 +48,11 @@ export function ItemCard({ report, currentUserId, onArchive }) {
     <>
       <Card 
         onClick={() => setShowDetailModal(true)}
-        className="group overflow-hidden hover:shadow-2xl transition-all duration-300 border-2 hover:border-blue-300 hover:-translate-y-1 cursor-pointer"
+        className="group overflow-hidden hover:shadow-2xl transition-all duration-300 border-2 hover:border-blue-300 hover:-translate-y-1 cursor-pointer gap-0.5"
       >
       {/* Image Section */}
       {report.imageUrl && (
-        <div className="relative h-52 w-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
+        <div className="relative h-60 w-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
           <ImageWithFallback
             src={report.imageUrl}
             alt={report.itemName}
@@ -84,7 +84,7 @@ export function ItemCard({ report, currentUserId, onArchive }) {
         </div>
       )}
 
-      <CardHeader className="bg-gradient-to-br from-white to-gray-50">
+      <CardHeader className="bg-gradient-to-br from-white to-gray-50 p-4 pt-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <CardTitle className="text-lg font-bold truncate text-gray-900">
@@ -112,7 +112,7 @@ export function ItemCard({ report, currentUserId, onArchive }) {
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-2 pt-2">
+      <CardContent className="space-y-2 p-4 pt-1">
         {/* Claim Buttons */}
         {report.type === "found" && !isOwner && report.status === "active" && (
           <Button 

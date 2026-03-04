@@ -72,13 +72,13 @@ export function ClaimModal({ isOpen, onClose, report, userId }) {
       const payload = report.type === 'found'
         ? {
             requester_id: userId,
-            found_report_id: report.id,
+            found_report_id: report.dbId || report.id,
             message: message,
             image_urls: imageUrls
           }
         : {
             requester_id: userId,
-            lost_report_id: report.id,
+            lost_report_id: report.dbId || report.id,
             message: message,
             image_urls: imageUrls
           };
