@@ -15,6 +15,10 @@ DROP FUNCTION IF EXISTS notify_return_status_update();
 
 DROP PROCEDURE IF EXISTS create_claim_request_found(INT, INT, TEXT, TEXT[]);
 DROP PROCEDURE IF EXISTS create_return_request_lost(INT, INT, TEXT, TEXT[]);
+DROP PROCEDURE IF EXISTS accept_claim_request(INT);
+DROP PROCEDURE IF EXISTS reject_claim_request(INT);
+DROP PROCEDURE IF EXISTS accept_return_request(INT);
+DROP PROCEDURE IF EXISTS reject_return_request(INT);
 DROP PROCEDURE IF EXISTS delete_notification(INT);
 DROP PROCEDURE IF EXISTS mark_notification_as_read(INT, INT);
 DROP PROCEDURE IF EXISTS archive_lost_report(INT);

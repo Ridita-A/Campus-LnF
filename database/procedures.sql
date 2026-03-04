@@ -40,6 +40,21 @@ BEGIN
         INSERT INTO Lost_Report_Images (lost_id, image_url)
         VALUES (new_lost_id, image_url);
     END LOOP;
+
+    -- Auto-Match Logic
+    -- Find any active Found_Reports at the same location that share AT LEAST ONE tag
+    INSERT INTO Notification (user_id, matched_lost_id, message, created_at)
+    SELECT DISTINCT
+        fr.creator_id,
+        new_lost_id,
+        'A newly lost item might match your found item: ' || p_title,
+        NOW()
+    FROM Found_Report fr
+    JOIN Found_Report_Tags frt ON fr.found_id = frt.found_id
+    WHERE fr.found_location_id = p_last_location_id
+      AND fr.status = 'active'
+      AND frt.category_id = ANY(p_tags);
+
 END;
 $$;
 
@@ -81,6 +96,21 @@ BEGIN
         INSERT INTO Found_Report_Images (found_id, image_url)
         VALUES (new_found_id, image_url);
     END LOOP;
+
+    -- Auto-Match Logic
+    -- Find any active Lost_Reports at the same location that share AT LEAST ONE tag
+    INSERT INTO Notification (user_id, matched_found_id, message, created_at)
+    SELECT DISTINCT
+        lr.creator_id,
+        new_found_id,
+        'A newly found item might match your lost item: ' || p_title,
+        NOW()
+    FROM Lost_Report lr
+    JOIN Lost_Report_Tags lrt ON lr.lost_id = lrt.lost_id
+    WHERE lr.last_location_id = p_found_location_id
+      AND lr.status = 'active'
+      AND lrt.category_id = ANY(p_tags);
+
 END;
 $$;
 

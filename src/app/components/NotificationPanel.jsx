@@ -152,6 +152,7 @@ export function NotificationPanel({ userId }) {
   };
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
+  const isAutoMatch = (n) => !!(n.matched_found_id || n.matched_lost_id);
 
   return (
     <>
@@ -203,6 +204,11 @@ export function NotificationPanel({ userId }) {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-gray-800 font-medium leading-relaxed">{notification.message}</p>
                         <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                          {isAutoMatch(notification) && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-2 py-0.5 mr-1">
+                              ✦ Match
+                            </span>
+                          )}
                           <span className={`inline-block w-1.5 h-1.5 rounded-full ${notification.is_read ? 'bg-gray-400' : 'bg-blue-500'}`}></span>
                           {new Date(notification.created_at).toLocaleString()}
                         </p>
@@ -336,6 +342,8 @@ export function NotificationPanel({ userId }) {
                 <p className="text-sm text-gray-800 mt-1.5">{selectedNotification.message}</p>
               </div>
 
+              {/* Only show requester section for non-auto-match notifications */}
+              {!isAutoMatch(selectedNotification) && (
               <div className="bg-gray-50 border border-gray-200 rounded-xl p-3.5">
                 <p className="text-sm font-semibold text-gray-800">
                   {selectedNotification.claim_id ? "Claim request" : "Return request"} from {selectedNotification.requester_name || "Unknown user"}
@@ -344,6 +352,7 @@ export function NotificationPanel({ userId }) {
                   {selectedNotification.requester_message || "No message provided."}
                 </p>
               </div>
+              )}
 
               {/* Requester Submitted Images */}
               {selectedNotification.requester_image_urls && selectedNotification.requester_image_urls.length > 0 && (
@@ -389,7 +398,19 @@ export function NotificationPanel({ userId }) {
 
           <DialogFooter className="gap-2">
             {selectedNotification && !selectedNotification.is_read && (
-              ((selectedNotification.claim_id || selectedNotification.return_id) && selectedNotification.request_status === 'pending') ? (
+              // Auto-match notifications only get Mark as Read
+              isAutoMatch(selectedNotification) ? (
+                <Button
+                  onClick={async () => {
+                    await handleMarkAsRead(selectedNotification.notification_id);
+                    setIsDetailOpen(false);
+                  }}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <CheckCheck className="size-4 mr-2" />
+                  Mark as Read
+                </Button>
+              ) : ((selectedNotification.claim_id || selectedNotification.return_id) && selectedNotification.request_status === 'pending') ? (
                 <>
                   <Button
                     onClick={async () => {

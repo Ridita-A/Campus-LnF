@@ -35,7 +35,11 @@ CREATE TABLE Notification (
     created_at TIMESTAMPTZ,
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
     read_at TIMESTAMPTZ,
-    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
+    matched_found_id INT,
+    matched_lost_id INT,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (matched_found_id) REFERENCES Found_Report(found_id) ON DELETE CASCADE,
+    FOREIGN KEY (matched_lost_id) REFERENCES Lost_Report(lost_id) ON DELETE CASCADE
 );
 
 

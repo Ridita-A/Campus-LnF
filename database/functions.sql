@@ -112,6 +112,8 @@ RETURNS TABLE (
     request_status TEXT, 
     report_type TEXT,
     report_id INT,
+    matched_found_id INT,
+    matched_lost_id INT,
     item_title VARCHAR(50),
     item_description TEXT,
     location_name VARCHAR(100),
@@ -139,32 +141,36 @@ BEGIN
         CASE
             WHEN fr.found_id IS NOT NULL THEN 'found'::TEXT
             WHEN lr_return.lost_id IS NOT NULL THEN 'lost'::TEXT
+            WHEN n.matched_found_id IS NOT NULL THEN 'found'::TEXT
+            WHEN n.matched_lost_id IS NOT NULL THEN 'lost'::TEXT
             ELSE NULL::TEXT
         END AS report_type,
-        COALESCE(fr.found_id, lr_return.lost_id) AS report_id,
-        COALESCE(fr.title, lr_return.title) AS item_title,
-        COALESCE(fr.description, lr_return.description) AS item_description,
-        COALESCE(fl.name, ll_return.name) AS location_name,
-        COALESCE(fr.found_at, lr_return.lost_at) AS item_date,
+        COALESCE(fr.found_id, lr_return.lost_id, n.matched_found_id, n.matched_lost_id) AS report_id,
+        n.matched_found_id,
+        n.matched_lost_id,
+        COALESCE(fr.title, lr_return.title, mfr.title, mlr.title) AS item_title,
+        COALESCE(fr.description, lr_return.description, mfr.description, mlr.description) AS item_description,
+        COALESCE(fl.name, ll_return.name, mfl.name, mll.name) AS location_name,
+        COALESCE(fr.found_at, lr_return.lost_at, mfr.found_at, mlr.lost_at) AS item_date,
         COALESCE(
             (SELECT fri.image_url
              FROM Found_Report_Images fri
-             WHERE fri.found_id = fr.found_id
+             WHERE fri.found_id = COALESCE(fr.found_id, n.matched_found_id)
              ORDER BY fri.image_id
              LIMIT 1),
             (SELECT lri.image_url
              FROM Lost_Report_Images lri
-             WHERE lri.lost_id = lr_return.lost_id
+             WHERE lri.lost_id = COALESCE(lr_return.lost_id, n.matched_lost_id)
              ORDER BY lri.image_id
              LIMIT 1)
         ) AS item_image_url,
         COALESCE(
             (SELECT ARRAY_AGG(fri.image_url)
              FROM Found_Report_Images fri
-             WHERE fri.found_id = fr.found_id),
+             WHERE fri.found_id = COALESCE(fr.found_id, n.matched_found_id)),
             (SELECT ARRAY_AGG(lri.image_url)
              FROM Lost_Report_Images lri
-             WHERE lri.lost_id = lr_return.lost_id)
+             WHERE lri.lost_id = COALESCE(lr_return.lost_id, n.matched_lost_id))
         ) AS item_image_urls,
         COALESCE(
             (SELECT ARRAY_AGG(cri.image_url)
@@ -181,8 +187,12 @@ BEGIN
     LEFT JOIN Users ru ON rr.requester_id = ru.user_id
     LEFT JOIN Found_Report fr ON cr.found_report_id = fr.found_id
     LEFT JOIN Lost_Report lr_return ON rr.lost_report_id = lr_return.lost_id
+    LEFT JOIN Found_Report mfr ON n.matched_found_id = mfr.found_id
+    LEFT JOIN Lost_Report mlr ON n.matched_lost_id = mlr.lost_id
     LEFT JOIN Location fl ON fr.found_location_id = fl.location_id
     LEFT JOIN Location ll_return ON lr_return.last_location_id = ll_return.location_id
+    LEFT JOIN Location mfl ON mfr.found_location_id = mfl.location_id
+    LEFT JOIN Location mll ON mlr.last_location_id = mll.location_id
     WHERE n.user_id = p_user_id
     ORDER BY n.created_at DESC, n.notification_id DESC;
 END;
