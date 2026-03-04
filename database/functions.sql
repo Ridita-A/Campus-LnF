@@ -311,6 +311,8 @@ $$ LANGUAGE plpgsql;
 -- USER REPORT HISTORY FUNCTION
 -- ============================================
 
+DROP FUNCTION IF EXISTS get_user_report_history(INT);
+
 CREATE OR REPLACE FUNCTION get_user_report_history(p_user_id INT)
 RETURNS TABLE (
     history_id      INT,
@@ -323,7 +325,10 @@ RETURNS TABLE (
     image_url       TEXT,
     category        TEXT,
     creator_name    TEXT,      
-    creator_id      INT         
+    creator_id      INT,
+    creator_email   VARCHAR(255),
+    creator_student_id NUMERIC(9, 0),
+    creator_contact_number BIGINT
 ) AS $$
 BEGIN
     RETURN QUERY
@@ -347,10 +352,14 @@ BEGIN
          WHERE lrt.lost_id = lr.lost_id
          ORDER BY t.tag_id LIMIT 1)::TEXT AS category,
         u.name::TEXT AS creator_name,
-        u.user_id AS creator_id
+        u.user_id AS creator_id,
+        a.email AS creator_email,
+        u.student_id AS creator_student_id,
+        u.contact_number AS creator_contact_number
     FROM Lost_Report lr
     JOIN Location l ON l.location_id = lr.last_location_id
     JOIN Users u ON u.user_id = lr.creator_id
+    JOIN Auth a ON a.user_id = u.user_id
     WHERE lr.creator_id = p_user_id
 
     UNION ALL
@@ -374,10 +383,14 @@ BEGIN
          WHERE frt.found_id = fr.found_id
          ORDER BY t.tag_id LIMIT 1)::TEXT AS category,
         u.name::TEXT AS creator_name,
-        u.user_id AS creator_id
+        u.user_id AS creator_id,
+        a.email AS creator_email,
+        u.student_id AS creator_student_id,
+        u.contact_number AS creator_contact_number
     FROM Found_Report fr
     JOIN Location l ON l.location_id = fr.found_location_id
     JOIN Users u ON u.user_id = fr.creator_id
+    JOIN Auth a ON a.user_id = u.user_id
     WHERE fr.creator_id = p_user_id
 
     UNION ALL
@@ -401,11 +414,15 @@ BEGIN
          WHERE frt.found_id = fr.found_id
          ORDER BY t.tag_id LIMIT 1)::TEXT AS category,
         u.name::TEXT AS creator_name,
-        u.user_id AS creator_id
+        u.user_id AS creator_id,
+        a.email AS creator_email,
+        u.student_id AS creator_student_id,
+        u.contact_number AS creator_contact_number
     FROM Claim_Request cr
     JOIN Found_Report fr ON fr.found_id = cr.found_report_id
     JOIN Location l ON l.location_id = fr.found_location_id
     JOIN Users u ON u.user_id = fr.creator_id
+    JOIN Auth a ON a.user_id = u.user_id
     WHERE cr.requester_id = p_user_id
 
     UNION ALL
@@ -429,11 +446,15 @@ BEGIN
          WHERE lrt.lost_id = lr.lost_id
          ORDER BY t.tag_id LIMIT 1)::TEXT AS category,
         u.name::TEXT AS creator_name,
-        u.user_id AS creator_id
+        u.user_id AS creator_id,
+        a.email AS creator_email,
+        u.student_id AS creator_student_id,
+        u.contact_number AS creator_contact_number
     FROM Return_Request rr
     JOIN Lost_Report lr ON lr.lost_id = rr.lost_report_id
     JOIN Location l ON l.location_id = lr.last_location_id
     JOIN Users u ON u.user_id = lr.creator_id
+    JOIN Auth a ON a.user_id = u.user_id
     WHERE rr.requester_id = p_user_id
 
     ORDER BY reported_at DESC NULLS LAST;
@@ -441,3 +462,108 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- FUNCTION to get filtered and sorted reports for the dashboard
+DROP FUNCTION IF EXISTS get_dashboard_reports(TEXT, TEXT, TEXT, TEXT, TEXT, INT);
+
+CREATE OR REPLACE FUNCTION get_dashboard_reports(
+    p_search TEXT DEFAULT '',
+    p_category TEXT DEFAULT 'all',
+    p_location TEXT DEFAULT 'all',
+    p_type TEXT DEFAULT 'all', -- 'all', 'lost', 'found', 'my-reports'
+    p_sort_order TEXT DEFAULT 'newest', -- 'newest', 'oldest'
+    p_current_user_id INT DEFAULT NULL
+)
+RETURNS TABLE (
+    id TEXT,
+    db_id INT,
+    report_type TEXT,
+    creator_id INT,
+    user_name TEXT,
+    user_email VARCHAR(255),
+    user_student_id NUMERIC(9, 0),
+    user_contact_number BIGINT,
+    title VARCHAR(50),
+    description TEXT,
+    category TEXT,
+    location_name VARCHAR(100),
+    reported_at TIMESTAMP WITH TIME ZONE,
+    status TEXT,
+    image_url TEXT,
+    image_urls TEXT[],
+    tags TEXT[]
+) AS $$
+BEGIN
+    RETURN QUERY
+    WITH combined_reports AS (
+        -- LOST REPORTS
+        SELECT
+            'lost-' || lr.lost_id AS id,
+            lr.lost_id AS db_id,
+            'lost'::TEXT AS report_type,
+            lr.creator_id,
+            u.name::TEXT AS user_name,
+            a.email AS user_email,
+            u.student_id AS user_student_id,
+            u.contact_number AS user_contact_number,
+            lr.title,
+            lr.description,
+            (SELECT t.name FROM Tags t JOIN Lost_Report_Tags lrt ON t.tag_id = lrt.category_id WHERE lrt.lost_id = lr.lost_id LIMIT 1)::TEXT AS category,
+            l.name::TEXT AS location_name,
+            lr.lost_at AT TIME ZONE 'UTC' AS reported_at,
+            lr.status::TEXT AS status,
+            (SELECT lri.image_url FROM Lost_Report_Images lri WHERE lri.lost_id = lr.lost_id ORDER BY lri.image_id LIMIT 1) AS image_url,
+            ARRAY(SELECT lri.image_url FROM Lost_Report_Images lri WHERE lri.lost_id = lr.lost_id) AS image_urls,
+            ARRAY(SELECT t.name FROM Tags t JOIN Lost_Report_Tags lrt ON t.tag_id = lrt.category_id WHERE lrt.lost_id = lr.lost_id)::TEXT[] AS tags
+        FROM Lost_Report lr
+        JOIN Users u ON lr.creator_id = u.user_id
+        JOIN Auth a ON u.user_id = a.user_id
+        JOIN Location l ON lr.last_location_id = l.location_id
+        WHERE lr.status != 'archived'
+
+        UNION ALL
+
+        -- FOUND REPORTS
+        SELECT
+            'found-' || fr.found_id AS id,
+            fr.found_id AS db_id,
+            'found'::TEXT AS report_type,
+            fr.creator_id,
+            u.name::TEXT AS user_name,
+            a.email AS user_email,
+            u.student_id AS user_student_id,
+            u.contact_number AS user_contact_number,
+            fr.title,
+            fr.description,
+            (SELECT t.name FROM Tags t JOIN Found_Report_Tags frt ON t.tag_id = frt.category_id WHERE frt.found_id = fr.found_id LIMIT 1)::TEXT AS category,
+            l.name::TEXT AS location_name,
+            fr.found_at AT TIME ZONE 'UTC' AS reported_at,
+            fr.status::TEXT AS status,
+            (SELECT fri.image_url FROM Found_Report_Images fri WHERE fri.found_id = fr.found_id ORDER BY fri.image_id LIMIT 1) AS image_url,
+            ARRAY(SELECT fri.image_url FROM Found_Report_Images fri WHERE fri.found_id = fr.found_id) AS image_urls,
+            ARRAY(SELECT t.name FROM Tags t JOIN Found_Report_Tags frt ON t.tag_id = frt.category_id WHERE frt.found_id = fr.found_id)::TEXT[] AS tags
+        FROM Found_Report fr
+        JOIN Users u ON fr.creator_id = u.user_id
+        JOIN Auth a ON u.user_id = a.user_id
+        JOIN Location l ON fr.found_location_id = l.location_id
+        WHERE fr.status != 'archived'
+    )
+    SELECT * FROM combined_reports r
+    WHERE 
+        -- Search Filter
+        (p_search = '' OR r.title ILIKE '%' || p_search || '%' OR r.description ILIKE '%' || p_search || '%')
+        -- Category Filter
+        AND (p_category = 'all' OR r.category = p_category)
+        -- Location Filter
+        AND (p_location = 'all' OR r.location_name = p_location)
+        -- Type/Tab Filter
+        AND (
+            p_type = 'all' 
+            OR (p_type = 'lost' AND r.report_type = 'lost')
+            OR (p_type = 'found' AND r.report_type = 'found')
+            OR (p_type = 'my-reports' AND r.creator_id = p_current_user_id)
+        )
+    ORDER BY 
+        CASE WHEN p_sort_order = 'newest' THEN r.reported_at END DESC,
+        CASE WHEN p_sort_order = 'oldest' THEN r.reported_at END ASC;
+END;
+$$ LANGUAGE plpgsql;
