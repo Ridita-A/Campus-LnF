@@ -322,7 +322,7 @@ export function NotificationPanel({ userId }) {
                   <Calendar className="size-4 text-gray-500" />
                   <span>
                     {selectedNotification.item_date
-                      ? new Date(selectedNotification.item_date).toLocaleString()
+                      ? new Date(selectedNotification.item_date).toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'short', day: 'numeric' })
                       : "Unknown date"}
                   </span>
                 </div>

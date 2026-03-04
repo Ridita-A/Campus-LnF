@@ -128,6 +128,7 @@ export function ItemDetailModal({ isOpen, onClose, report, currentUserId, onClai
                   <p className="text-[10px] font-bold text-purple-500 uppercase tracking-widest mb-0.5">Date</p>
                   <p className="text-gray-900 font-bold text-lg">
                     {new Date(report.date).toLocaleDateString('en-US', { 
+                      timeZone: 'UTC',
                       weekday: 'long',
                       year: 'numeric', 
                       month: 'long', 

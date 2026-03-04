@@ -9,7 +9,8 @@ import { ReportForm } from "@/app/components/ReportForm.jsx";
 import { AuthForm } from "@/app/components/AuthForm.jsx";
 import { NotificationPanel } from "@/app/components/NotificationPanel.jsx";
 import { ProfilePage } from "@/app/components/ProfilePage.jsx";
-import { PlusCircle, Search, LogOut, Package, RotateCcw } from "lucide-react";
+import { FunStats } from "@/app/components/FunStats.jsx";
+import { PlusCircle, Search, LogOut, Package, RotateCcw, Activity } from "lucide-react";
 import { toast } from "sonner";
 
 
@@ -19,6 +20,7 @@ export function Dashboard({ user: initialUser, onLogout }) {
   const [reports, setReports] = useState([]);
   const [showReportForm, setShowReportForm] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
+  const [showStats, setShowStats] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterLocation, setFilterLocation] = useState("all");
@@ -188,6 +190,10 @@ export function Dashboard({ user: initialUser, onLogout }) {
     );
   }
 
+  if (showStats) {
+    return <FunStats onBack={() => setShowStats(false)} />;
+  }
+
   if (showReportForm) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
@@ -232,8 +238,18 @@ export function Dashboard({ user: initialUser, onLogout }) {
               >
                 {getInitials(user.name)}
               </button>
+              <Button
+                variant="outline"
+                onClick={() => setShowStats(true)}
+                title="Fun Stats"
+                className="hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-400 transition-all shadow-md hover:shadow-lg border-2 font-semibold"
+              >
+                <Activity className="size-4 mr-2" />
+                Stats
+              </Button>
               <Button 
                 variant="outline" 
+
                 onClick={onLogout} 
                 className="hover:bg-red-50 hover:text-red-600 hover:border-red-400 transition-all shadow-md hover:shadow-lg border-2 font-semibold"
               >

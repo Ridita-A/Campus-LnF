@@ -361,28 +361,56 @@ END;
 $$;
 
 -- ============================================
--- AUTO-ARCHIVE PROCEDURE
+-- AUTO-ARCHIVE PROCEDURE 
 -- ============================================
 CREATE OR REPLACE PROCEDURE auto_archive_inactive_reports()
 LANGUAGE plpgsql
 AS $$
-BEGIN
-    -- Archive active Lost Reports older than 1 month with no associated return requests
-    UPDATE Lost_Report
-    SET status = 'archived'
-    WHERE status = 'active'
-      AND created_at <= NOW() - INTERVAL '1 month'
-      AND NOT EXISTS (
-          SELECT 1 FROM Return_Request WHERE lost_report_id = Lost_Report.lost_id
-      );
+DECLARE
+    -- Explicit cursor for lost reports
+    lost_cursor CURSOR FOR
+        SELECT lost_id FROM Lost_Report
+        WHERE status = 'active'
+          AND created_at <= NOW() - INTERVAL '1 month'
+          AND NOT EXISTS (SELECT 1 FROM Return_Request WHERE lost_report_id = Lost_Report.lost_id);
+    v_lost_id INT;
 
-    -- Archive active Found Reports older than 1 month with no associated claim requests
-    UPDATE Found_Report
-    SET status = 'archived'
-    WHERE status = 'active'
-      AND created_at <= NOW() - INTERVAL '1 month'
-      AND NOT EXISTS (
-          SELECT 1 FROM Claim_Request WHERE found_report_id = Found_Report.found_id
-      );
+    -- Explicit cursor for found reports
+    found_cursor CURSOR FOR
+        SELECT found_id FROM Found_Report
+        WHERE status = 'active'
+          AND created_at <= NOW() - INTERVAL '1 month'
+          AND NOT EXISTS (SELECT 1 FROM Claim_Request WHERE found_report_id = Found_Report.found_id);
+    v_found_id INT;
+BEGIN
+    -- Process lost reports
+    OPEN lost_cursor;
+    LOOP
+        FETCH lost_cursor INTO v_lost_id;
+        EXIT WHEN NOT FOUND;
+
+        BEGIN
+            UPDATE Lost_Report SET status = 'archived' WHERE lost_id = v_lost_id;
+        EXCEPTION
+            WHEN OTHERS THEN
+                RAISE NOTICE 'Error archiving lost report %: %', v_lost_id, SQLERRM;
+        END;
+    END LOOP;
+    CLOSE lost_cursor;
+
+    -- Process found reports
+    OPEN found_cursor;
+    LOOP
+        FETCH found_cursor INTO v_found_id;
+        EXIT WHEN NOT FOUND;
+
+        BEGIN
+            UPDATE Found_Report SET status = 'archived' WHERE found_id = v_found_id;
+        EXCEPTION
+            WHEN OTHERS THEN
+                RAISE NOTICE 'Error archiving found report %: %', v_found_id, SQLERRM;
+        END;
+    END LOOP;
+    CLOSE found_cursor;
 END;
 $$;

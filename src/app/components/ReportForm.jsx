@@ -94,12 +94,15 @@ export function ReportForm({ type, userId, onSubmit, onCancel }) {
         image_urls: imageUrls,
       };
 
+      const [year, month, day] = date.split('-');
+      const localDate = new Date(year, month - 1, day);
+
       if (type === 'lost') {
         report.last_location_id = parseInt(location);
-        report.lost_at = new Date(date).toISOString();
+        report.lost_at = localDate.toISOString();
       } else {
         report.found_location_id = parseInt(location);
-        report.found_at = new Date(date).toISOString();
+        report.found_at = localDate.toISOString();
       }
 
       // 3. Send to backend API

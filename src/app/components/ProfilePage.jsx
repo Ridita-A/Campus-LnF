@@ -470,7 +470,7 @@ export function ProfilePage({ user, onBack, onUpdateUser }) {
                           {item.reported_at && (
                             <span>
                               🕓 {new Date(item.reported_at).toLocaleDateString("en-US", {
-                                year: "numeric", month: "short", day: "numeric",
+                                timeZone: "UTC", year: "numeric", month: "short", day: "numeric",
                               })}
                             </span>
                           )}

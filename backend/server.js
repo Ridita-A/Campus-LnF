@@ -6,6 +6,7 @@ const claimRoutes = require('./routes/claimRequestRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const archiveRoutes = require('./routes/archiveRoutes');
 const userRoutes = require('./routes/userRoutes');
+const statsRoutes = require('./routes/statsRoutes');
 
 const app = express();
 app.use(cors());
@@ -17,5 +18,6 @@ app.use('/api/claims', claimRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/archive', archiveRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/stats', statsRoutes);
 
 app.listen(3000, () => console.log('Server running on port 3000'));

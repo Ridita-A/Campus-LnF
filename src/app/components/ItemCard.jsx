@@ -104,7 +104,7 @@ export function ItemCard({ report, currentUserId, onArchive }) {
               {report.date && (
                 <span className="flex items-center gap-1">
                   <Calendar className="size-3.5" />
-                  {new Date(report.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  {new Date(report.date).toLocaleDateString("en-US", { timeZone: 'UTC', month: "short", day: "numeric", year: "numeric" })}
                 </span>
               )}
             </div>

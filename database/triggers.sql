@@ -175,3 +175,42 @@ CREATE TRIGGER trigger_notify_return_status_update
 AFTER UPDATE OF status ON Return_Request
 FOR EACH ROW
 EXECUTE FUNCTION notify_return_status_update();
+
+-- ============================================
+-- AUDIT LOG TRIGGERS
+-- ============================================
+
+CREATE OR REPLACE FUNCTION log_lost_report_status_change()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD.status IS DISTINCT FROM NEW.status THEN
+        INSERT INTO Audit_Log (table_name, record_id, action, old_status, new_status, changed_at)
+        VALUES ('Lost_Report', NEW.lost_id, TG_OP, OLD.status, NEW.status, NOW());
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_audit_lost_report_status ON Lost_Report;
+CREATE TRIGGER trigger_audit_lost_report_status
+AFTER UPDATE OF status ON Lost_Report
+FOR EACH ROW
+EXECUTE FUNCTION log_lost_report_status_change();
+
+
+CREATE OR REPLACE FUNCTION log_found_report_status_change()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD.status IS DISTINCT FROM NEW.status THEN
+        INSERT INTO Audit_Log (table_name, record_id, action, old_status, new_status, changed_at)
+        VALUES ('Found_Report', NEW.found_id, TG_OP, OLD.status, NEW.status, NOW());
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_audit_found_report_status ON Found_Report;
+CREATE TRIGGER trigger_audit_found_report_status
+AFTER UPDATE OF status ON Found_Report
+FOR EACH ROW
+EXECUTE FUNCTION log_found_report_status_change();

@@ -164,3 +164,15 @@ CREATE TABLE Found_Report_Tags (
     FOREIGN KEY (found_id) REFERENCES Found_Report(found_id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES Tags(tag_id) ON DELETE CASCADE
 );
+
+
+-- AUDIT LOG
+CREATE TABLE Audit_Log (
+    log_id SERIAL PRIMARY KEY,
+    table_name VARCHAR(50) NOT NULL,
+    record_id INT NOT NULL,
+    action VARCHAR(20) NOT NULL,
+    old_status report_status_enum,
+    new_status report_status_enum,
+    changed_at TIMESTAMPTZ DEFAULT NOW()
+);
