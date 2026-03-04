@@ -237,12 +237,11 @@ AS $$
 DECLARE
     v_requester_id INT;
     v_found_id INT;
-    v_lost_id INT;
     v_item_title VARCHAR(50);
     v_owner_name VARCHAR(100);
 BEGIN
     -- Get request details
-    SELECT requester_id, found_report_id, lost_report_id INTO v_requester_id, v_found_id, v_lost_id
+    SELECT requester_id, found_report_id INTO v_requester_id, v_found_id
     FROM Claim_Request
     WHERE claim_id = p_claim_id;
 
@@ -252,12 +251,8 @@ BEGIN
     -- Update report status and get title/owner
     IF v_found_id IS NOT NULL THEN
         UPDATE Found_Report SET status = 'completed' WHERE found_id = v_found_id;
-        SELECT title, u.name INTO v_item_title, v_owner_name 
+        SELECT fr.title, u.name INTO v_item_title, v_owner_name 
         FROM Found_Report fr JOIN Users u ON fr.creator_id = u.user_id WHERE found_id = v_found_id;
-    ELSIF v_lost_id IS NOT NULL THEN
-        UPDATE Lost_Report SET status = 'completed' WHERE lost_id = v_lost_id;
-        SELECT title, u.name INTO v_item_title, v_owner_name 
-        FROM Lost_Report lr JOIN Users u ON lr.creator_id = u.user_id WHERE lost_id = v_lost_id;
     END IF;
 
 END;
@@ -272,13 +267,12 @@ DECLARE
     v_owner_name VARCHAR(100);
 BEGIN
     -- Get request details
-    SELECT requester_id, COALESCE(fr.title, lr.title), u.name 
+    SELECT cr.requester_id, fr.title, u.name 
     INTO v_requester_id, v_item_title, v_owner_name
     FROM Claim_Request cr
-    LEFT JOIN Found_Report fr ON cr.found_report_id = fr.found_id
-    LEFT JOIN Lost_Report lr ON cr.lost_report_id = lr.lost_id
-    JOIN Users u ON COALESCE(fr.creator_id, lr.creator_id) = u.user_id
-    WHERE claim_id = p_claim_id;
+    JOIN Found_Report fr ON cr.found_report_id = fr.found_id
+    JOIN Users u ON fr.creator_id = u.user_id
+    WHERE cr.claim_id = p_claim_id;
 
     -- Update request status
     UPDATE Claim_Request SET status = 'rejected' WHERE claim_id = p_claim_id;
@@ -307,8 +301,8 @@ BEGIN
     UPDATE Lost_Report SET status = 'completed' WHERE lost_id = v_lost_id;
 
     -- Get item details
-    SELECT title, u.name INTO v_item_title, v_owner_name 
-    FROM Lost_Report lr JOIN Users u ON lr.creator_id = u.user_id WHERE lost_id = v_lost_id;
+    SELECT lr.title, u.name INTO v_item_title, v_owner_name 
+    FROM Lost_Report lr JOIN Users u ON lr.creator_id = u.user_id WHERE lr.lost_id = v_lost_id;
 
 END;
 $$;
@@ -322,12 +316,12 @@ DECLARE
     v_owner_name VARCHAR(100);
 BEGIN
     -- Get request details
-    SELECT requester_id, lr.title, u.name 
+    SELECT rr.requester_id, lr.title, u.name 
     INTO v_requester_id, v_item_title, v_owner_name
     FROM Return_Request rr
     JOIN Lost_Report lr ON rr.lost_report_id = lr.lost_id
     JOIN Users u ON lr.creator_id = u.user_id
-    WHERE return_id = p_return_id;
+    WHERE rr.return_id = p_return_id;
 
     -- Update request status
     UPDATE Return_Request SET status = 'rejected' WHERE return_id = p_return_id;
