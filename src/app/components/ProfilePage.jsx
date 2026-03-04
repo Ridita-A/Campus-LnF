@@ -4,7 +4,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Badge } from "@/app/components/ui/badge.jsx";
 import { ItemDetailModal } from "@/app/components/ItemDetailModal.jsx";
-import { ArrowLeft, User, Mail, Phone, IdCard, Pencil, Save, X, Package, ClipboardList, HandHeart, RotateCcw, Search, Archive, } from "lucide-react";
+import { ArrowLeft, User, Mail, Phone, IdCard, Pencil, Save, X, Package, ClipboardList, HandHeart, RotateCcw, Search, Archive, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 const TYPE_CONFIG = {
@@ -197,6 +197,8 @@ export function ProfilePage({ user, onBack, onUpdateUser }) {
       ? history
       : historyFilter === "archived"
       ? history.filter((h) => h.status === "archived")
+      : historyFilter === "completed"
+      ? history.filter((h) => h.status === "completed" || h.status === "accepted")
       : history.filter(
           (h) => h.report_type === historyFilter && h.status !== "archived"
         );
@@ -382,12 +384,13 @@ export function ProfilePage({ user, onBack, onUpdateUser }) {
               {/* Filter tabs — dashboard style */}
               <div className="flex gap-1 bg-white p-1.5 rounded-xl shadow border-2 border-gray-200 flex-wrap">
                 {[
-                  { value: "all",      label: "All",      base: "bg-blue-50 text-blue-700 hover:bg-blue-100",      activeGrad: "linear-gradient(to right, #3b82f6, #2563eb)" },
-                  { value: "lost",     label: "Lost",     base: "bg-red-50 text-red-700 hover:bg-red-100",          activeGrad: "linear-gradient(to right, #ef4444, #dc2626)" },
-                  { value: "found",    label: "Found",    base: "bg-green-50 text-green-700 hover:bg-green-100",    activeGrad: "linear-gradient(to right, #22c55e, #16a34a)" },
-                  { value: "claim",    label: "Claims",   base: "bg-purple-50 text-purple-700 hover:bg-purple-100", activeGrad: "linear-gradient(to right, #a855f7, #9333ea)" },
-                  { value: "return",   label: "Returns",  base: "bg-orange-50 text-orange-700 hover:bg-orange-100", activeGrad: "linear-gradient(to right, #f97316, #ea580c)" },
-                  { value: "archived", label: "Archived", base: "bg-slate-100 text-slate-700 hover:bg-slate-200",   activeGrad: "linear-gradient(to right, #475569, #334155)" },
+                  { value: "all",       label: "All",       base: "bg-blue-50 text-blue-700 hover:bg-blue-100",      activeGrad: "linear-gradient(to right, #3b82f6, #2563eb)" },
+                  { value: "lost",      label: "Lost",      base: "bg-red-50 text-red-700 hover:bg-red-100",          activeGrad: "linear-gradient(to right, #ef4444, #dc2626)" },
+                  { value: "found",     label: "Found",     base: "bg-green-50 text-green-700 hover:bg-green-100",    activeGrad: "linear-gradient(to right, #22c55e, #16a34a)" },
+                  { value: "claim",     label: "Claims",    base: "bg-purple-50 text-purple-700 hover:bg-purple-100", activeGrad: "linear-gradient(to right, #a855f7, #9333ea)" },
+                  { value: "return",    label: "Returns",   base: "bg-orange-50 text-orange-700 hover:bg-orange-100", activeGrad: "linear-gradient(to right, #f97316, #ea580c)" },
+                  { value: "completed", label: "Completed", base: "bg-indigo-50 text-indigo-700 hover:bg-indigo-100", activeGrad: "linear-gradient(to right, #6366f1, #4f46e5)" },
+                  { value: "archived",  label: "Archived",  base: "bg-slate-100 text-slate-700 hover:bg-slate-200",   activeGrad: "linear-gradient(to right, #475569, #334155)" },
                 ].map((f) => {
                   const isActive = historyFilter === f.value;
                   return (

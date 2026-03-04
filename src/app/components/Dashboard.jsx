@@ -9,7 +9,7 @@ import { ReportForm } from "@/app/components/ReportForm.jsx";
 import { AuthForm } from "@/app/components/AuthForm.jsx";
 import { NotificationPanel } from "@/app/components/NotificationPanel.jsx";
 import { ProfilePage } from "@/app/components/ProfilePage.jsx";
-import { PlusCircle, Search, LogOut, Package } from "lucide-react";
+import { PlusCircle, Search, LogOut, Package, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
 
@@ -21,6 +21,8 @@ export function Dashboard({ user: initialUser, onLogout }) {
   const [showProfile, setShowProfile] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
+  const [filterLocation, setFilterLocation] = useState("all");
+  const [sortOrder, setSortOrder] = useState("newest");
   const [activeTab, setActiveTab] = useState("all");
   const [loading, setLoading] = useState(true);
 
@@ -33,6 +35,14 @@ export function Dashboard({ user: initialUser, onLogout }) {
       .toUpperCase();
 
   const handleUpdateUser = (updates) => setUser((u) => ({ ...u, ...updates }));
+
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setFilterCategory("all");
+    setFilterLocation("all");
+    setSortOrder("newest");
+    toast.info("Filters cleared");
+  };
 
   useEffect(() => {
     fetchReports();
@@ -113,35 +123,58 @@ export function Dashboard({ user: initialUser, onLogout }) {
   };
 
 
-  // Filter reports
-  const filteredReports = reports.filter((report) => {
-    const matchesSearch =
-      (report.itemName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (report.description || "").toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = filterCategory === "all" || report.category === filterCategory;
-    const matchesTab =
-      activeTab === "all" ||
-      (activeTab === "my-reports" && report.userId === user.id) ||
-      (activeTab === "lost" && report.type === "lost") ||
-      (activeTab === "found" && report.type === "found") ||
-      (activeTab === "archived" && report.status === "archived");
+  // Filter and sort reports
+  const filteredReports = reports
+    .filter((report) => {
+      const matchesSearch =
+        (report.itemName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (report.description || "").toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = filterCategory === "all" || report.category === filterCategory;
+      const matchesLocation = filterLocation === "all" || report.location === filterLocation;
+      const matchesTab =
+        activeTab === "all" ||
+        (activeTab === "my-reports" && report.userId === user.id) ||
+        (activeTab === "lost" && report.type === "lost") ||
+        (activeTab === "found" && report.type === "found");
 
-    // Exclude archived items from all tabs except the archived tab
-    const isNotArchived = activeTab === "archived" ? true : report.status !== "archived";
+      // Exclude archived items from all tabs
+      const isNotArchived = report.status !== "archived";
 
-    return matchesSearch && matchesCategory && matchesTab && isNotArchived;
-  });
+      return matchesSearch && matchesCategory && matchesLocation && matchesTab && isNotArchived;
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      if (sortOrder === "newest") {
+        return dateB - dateA;
+      } else {
+        return dateA - dateB;
+      }
+    });
 
   const categories = [
     "Electronics",
-    "Clothing",
+    "Clothing & Accessories",
     "Books & Stationery",
     "Bags & Backpacks",
     "Keys",
     "Wallets & Purses",
-    "Jewelry & Accessories",
-    "Sports Equipment",
+    "Cash",
     "ID Cards & Documents",
+    "Other",
+  ];
+
+  const locations = [
+    "CDS",
+    "AB1",
+    "AB2",
+    "AB3",
+    "Football Field",
+    "Auditorium",
+    "Male Hall",
+    "Female Hall",
+    "Library/Study",
+    "Car Parking",
     "Other",
   ];
 
@@ -233,30 +266,66 @@ export function Dashboard({ user: initialUser, onLogout }) {
 
         {/* Search and Filter */}
         <div className="bg-white p-6 rounded-2xl shadow-lg mb-8 border-2 border-gray-100 hover:border-blue-200 transition-all">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Search by item name or description..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-11 border-2 border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 h-12 text-base rounded-xl"
-              />
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search by item name or description..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-11 border-2 border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 h-12 text-base rounded-xl"
+                />
+              </div>
+              <Button
+                variant="outline"
+                onClick={handleClearFilters}
+                className="h-12 border-2 border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-600 font-semibold px-6 rounded-xl transition-all"
+              >
+                <RotateCcw className="size-4 mr-2" />
+                Clear All
+              </Button>
             </div>
-            <Select value={filterCategory} onValueChange={setFilterCategory}>
-              <SelectTrigger className="w-full sm:w-64 border-2 border-gray-200 py-5.5 h-12 text-base rounded-xl font-medium">
-                <SelectValue placeholder="All Categories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Select value={filterCategory} onValueChange={setFilterCategory}>
+                <SelectTrigger className="w-full border-2 border-gray-200 py-5.5 h-12 text-base rounded-xl font-medium">
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={filterLocation} onValueChange={setFilterLocation}>
+                <SelectTrigger className="w-full border-2 border-gray-200 py-5.5 h-12 text-base rounded-xl font-medium">
+                  <SelectValue placeholder="All Locations" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Locations</SelectItem>
+                  {locations.map((loc) => (
+                    <SelectItem key={loc} value={loc}>
+                      {loc}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={sortOrder} onValueChange={setSortOrder}>
+                <SelectTrigger className="w-full border-2 border-gray-200 py-5.5 h-12 text-base rounded-xl font-medium">
+                  <SelectValue placeholder="Sort By" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="oldest">Oldest First</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 
@@ -286,12 +355,6 @@ export function Dashboard({ user: initialUser, onLogout }) {
               className="mr-1 bg-pink-50 text-pink-700 hover:bg-pink-100 data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-400 data-[state=active]:to-pink-500 data-[state=active]:text-white font-semibold px-6 py-4 rounded-lg transition-all"
             >
               My Reports
-            </TabsTrigger>
-            <TabsTrigger 
-              value="archived" 
-              className="bg-gray-50 text-gray-700 hover:bg-gray-100 data-[state=active]:bg-gradient-to-r data-[state=active]:from-gray-500 data-[state=active]:to-gray-600 data-[state=active]:text-white font-semibold px-6 py-4 rounded-lg transition-all"
-            >
-              Archived
             </TabsTrigger>
           </TabsList>
 
