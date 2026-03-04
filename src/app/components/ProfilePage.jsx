@@ -95,6 +95,9 @@ export function ProfilePage({ user, onBack, onUpdateUser }) {
     category: item.category,
     userId: item.creator_id || user.id,
     userName: item.creator_name || "",
+    userEmail: item.creator_email || "",
+    userStudentId: item.creator_student_id || "",
+    userContactNumber: item.creator_contact_number || "",
   });
 
   useEffect(() => {

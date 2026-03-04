@@ -1,3 +1,7 @@
+-- Drop views first to avoid column name mismatch errors when adding new columns
+DROP VIEW IF EXISTS vw_lost_reports;
+DROP VIEW IF EXISTS vw_found_reports;
+
 -- View for fetching all lost reports with user and location details
 CREATE OR REPLACE VIEW vw_lost_reports AS
 SELECT
@@ -9,6 +13,7 @@ SELECT
     lr.status,
     l.name AS location_name,
     u.name AS user_name,
+    a.email AS user_email,
     u.student_id AS user_student_id,
     u.contact_number AS user_contact_number,
     ARRAY(SELECT t.name FROM Tags t JOIN Lost_Report_Tags lrt ON t.tag_id = lrt.category_id WHERE lrt.lost_id = lr.lost_id)::text[] AS tags,
@@ -17,6 +22,8 @@ FROM
     Lost_Report lr
 JOIN
     Users u ON lr.creator_id = u.user_id
+JOIN
+    Auth a ON u.user_id = a.user_id
 JOIN
     Location l ON lr.last_location_id = l.location_id;
 
@@ -31,6 +38,7 @@ SELECT
     fr.status,
     l.name AS location_name,
     u.name AS user_name,
+    a.email AS user_email,
     u.student_id AS user_student_id,
     u.contact_number AS user_contact_number,
     ARRAY(SELECT t.name FROM Tags t JOIN Found_Report_Tags frt ON t.tag_id = frt.category_id WHERE frt.found_id = fr.found_id)::text[] AS tags,
@@ -39,6 +47,8 @@ FROM
     Found_Report fr
 JOIN
     Users u ON fr.creator_id = u.user_id
+JOIN
+    Auth a ON u.user_id = a.user_id
 JOIN
     Location l ON fr.found_location_id = l.location_id;
 

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, } from "@/app/components/ui/dialog.jsx";
 import { Badge } from "@/app/components/ui/badge.jsx";
 import { Button } from "@/app/components/ui/button.jsx";
-import { MapPin, Calendar, User, Tag, Info, ChevronLeft, ChevronRight, Clock, HandHeart } from "lucide-react";
+import { MapPin, Calendar, User, Tag, Info, ChevronLeft, ChevronRight, Clock, HandHeart, Mail, IdCard, Phone } from "lucide-react";
 import ImageWithFallback from "@/app/components/ui/ImageWithFallback.jsx";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, } from "@/app/components/ui/carousel.jsx";
 import { ReporterProfileModal } from "@/app/components/ReporterProfileModal.jsx";
@@ -109,6 +109,42 @@ export function ItemDetailModal({ isOpen, onClose, report, currentUserId, onClai
                   <p className={`text-gray-900 font-bold text-lg ${report.userId !== currentUserId ? 'hover:underline decoration-blue-500 decoration-2 underline-offset-2' : ''}`}>{report.userName}</p>
                 </div>
               </div>
+
+              {report.userEmail && (
+                <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border-2 border-blue-50 shadow-sm">
+                  <div className="bg-blue-500/10 p-3 rounded-2xl shrink-0">
+                    <Mail className="size-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-0.5">Email</p>
+                    <p className="text-gray-900 font-bold text-lg">{report.userEmail}</p>
+                  </div>
+                </div>
+              )}
+
+              {report.userStudentId && (
+                <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border-2 border-blue-50 shadow-sm">
+                  <div className="bg-blue-500/10 p-3 rounded-2xl shrink-0">
+                    <IdCard className="size-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-0.5">Student ID</p>
+                    <p className="text-gray-900 font-bold text-lg">{report.userStudentId}</p>
+                  </div>
+                </div>
+              )}
+
+              {report.userContactNumber && (
+                <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border-2 border-blue-50 shadow-sm">
+                  <div className="bg-blue-500/10 p-3 rounded-2xl shrink-0">
+                    <Phone className="size-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-0.5">Phone Number</p>
+                    <p className="text-gray-900 font-bold text-lg">{report.userContactNumber}</p>
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border-2 border-green-50 shadow-sm">
                 <div className="bg-green-500/10 p-3 rounded-2xl shrink-0">
