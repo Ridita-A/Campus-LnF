@@ -8,6 +8,7 @@ import {
   Calendar,
   MapPin,
   MessageSquare,
+  Check,
 } from "lucide-react";
 import { Badge } from "@/app/components/ui/badge.jsx";
 import {
@@ -79,10 +80,53 @@ export function NotificationPanel({ userId }) {
             : n
         )
       );
-      toast.success('Marked as read');
     } catch (error) {
       console.error('Error marking notification as read:', error);
       toast.error('Failed to mark as read');
+    }
+  };
+
+  const handleAccept = async (notification) => {
+    const { claim_id, return_id, notification_id } = notification;
+    const url = claim_id 
+      ? `http://localhost:3000/api/claims/${claim_id}/accept`
+      : `http://localhost:3000/api/claims/returns/${return_id}/accept`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+      });
+
+      if (!response.ok) throw new Error('Failed to accept');
+
+      await handleMarkAsRead(notification_id);
+      toast.success('Request accepted');
+      fetchNotifications();
+    } catch (error) {
+      console.error('Error accepting:', error);
+      toast.error('Failed to accept request');
+    }
+  };
+
+  const handleReject = async (notification) => {
+    const { claim_id, return_id, notification_id } = notification;
+    const url = claim_id 
+      ? `http://localhost:3000/api/claims/${claim_id}/reject`
+      : `http://localhost:3000/api/claims/returns/${return_id}/reject`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+      });
+
+      if (!response.ok) throw new Error('Failed to reject');
+
+      await handleMarkAsRead(notification_id);
+      toast.success('Request rejected');
+      fetchNotifications();
+    } catch (error) {
+      console.error('Error rejecting:', error);
+      toast.error('Failed to reject request');
     }
   };
 
@@ -166,18 +210,47 @@ export function NotificationPanel({ userId }) {
 
                       <div className="flex items-center gap-1 shrink-0">
                         {!notification.is_read && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8 hover:bg-green-100 hover:text-green-700"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMarkAsRead(notification.notification_id);
-                            }}
-                            title="Mark as read"
-                          >
-                            <CheckCheck className="size-4" />
-                          </Button>
+                          (notification.claim_id || notification.return_id) ? (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 hover:bg-green-100 hover:text-green-700"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleAccept(notification);
+                                }}
+                                title="Accept"
+                              >
+                                <Check className="size-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 hover:bg-red-100 hover:text-red-700"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleReject(notification);
+                                }}
+                                title="Reject"
+                              >
+                                <X className="size-4" />
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8 hover:bg-green-100 hover:text-green-700"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarkAsRead(notification.notification_id);
+                              }}
+                              title="Mark as read"
+                            >
+                              <CheckCheck className="size-4" />
+                            </Button>
+                          )
                         )}
                         <Button
                           variant="ghost"
@@ -265,7 +338,7 @@ export function NotificationPanel({ userId }) {
 
               <div className="bg-gray-50 border border-gray-200 rounded-xl p-3.5">
                 <p className="text-sm font-semibold text-gray-800">
-                  Claim Message from {selectedNotification.requester_name || "Unknown user"}
+                  {selectedNotification.claim_id ? "Claim request" : "Return request"} from {selectedNotification.requester_name || "Unknown user"}
                 </p>
                 <p className="text-sm text-gray-700 mt-1.5">
                   {selectedNotification.requester_message || "No message provided."}
@@ -316,16 +389,41 @@ export function NotificationPanel({ userId }) {
 
           <DialogFooter className="gap-2">
             {selectedNotification && !selectedNotification.is_read && (
-              <Button
-                onClick={async () => {
-                  await handleMarkAsRead(selectedNotification.notification_id);
-                  setSelectedNotification((prev) => prev ? { ...prev, is_read: true } : prev);
-                }}
-                className="bg-green-600 hover:bg-green-700 text-white"
-              >
-                <CheckCheck className="size-4 mr-2" />
-                Mark as Read
-              </Button>
+              (selectedNotification.claim_id || selectedNotification.return_id) ? (
+                <>
+                  <Button
+                    onClick={async () => {
+                      await handleAccept(selectedNotification);
+                      setIsDetailOpen(false);
+                    }}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <Check className="size-4 mr-2" />
+                    Accept
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      await handleReject(selectedNotification);
+                      setIsDetailOpen(false);
+                    }}
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    <X className="size-4 mr-2" />
+                    Reject
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  onClick={async () => {
+                    await handleMarkAsRead(selectedNotification.notification_id);
+                    setSelectedNotification((prev) => prev ? { ...prev, is_read: true } : prev);
+                  }}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <CheckCheck className="size-4 mr-2" />
+                  Mark as Read
+                </Button>
+              )
             )}
             <Button variant="outline" onClick={() => setIsDetailOpen(false)}>
               Close
