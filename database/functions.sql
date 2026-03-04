@@ -124,11 +124,11 @@ BEGIN
     SELECT 
         n.notification_id,
         n.message,
-        n.created_at AT TIME ZONE 'UTC',
+        n.created_at,
         n.is_read,
         CASE
             WHEN n.read_at IS NULL THEN NULL
-            ELSE n.read_at AT TIME ZONE 'UTC'
+            ELSE n.read_at
         END,
         n.claim_id,
         n.return_id,
@@ -136,14 +136,14 @@ BEGIN
         COALESCE(cr.message, rr.message) AS requester_message,
         CASE
             WHEN fr.found_id IS NOT NULL THEN 'found'::TEXT
-            WHEN COALESCE(lr_claim.lost_id, lr_return.lost_id) IS NOT NULL THEN 'lost'::TEXT
+            WHEN lr_return.lost_id IS NOT NULL THEN 'lost'::TEXT
             ELSE NULL::TEXT
         END AS report_type,
-        COALESCE(fr.found_id, lr_claim.lost_id, lr_return.lost_id) AS report_id,
-        COALESCE(fr.title, lr_claim.title, lr_return.title) AS item_title,
-        COALESCE(fr.description, lr_claim.description, lr_return.description) AS item_description,
-        COALESCE(fl.name, ll_claim.name, ll_return.name) AS location_name,
-        COALESCE(fr.found_at, lr_claim.lost_at, lr_return.lost_at) AT TIME ZONE 'UTC' AS item_date,
+        COALESCE(fr.found_id, lr_return.lost_id) AS report_id,
+        COALESCE(fr.title, lr_return.title) AS item_title,
+        COALESCE(fr.description, lr_return.description) AS item_description,
+        COALESCE(fl.name, ll_return.name) AS location_name,
+        COALESCE(fr.found_at, lr_return.lost_at) AS item_date,
         COALESCE(
             (SELECT fri.image_url
              FROM Found_Report_Images fri
@@ -152,7 +152,7 @@ BEGIN
              LIMIT 1),
             (SELECT lri.image_url
              FROM Lost_Report_Images lri
-             WHERE lri.lost_id = COALESCE(lr_claim.lost_id, lr_return.lost_id)
+             WHERE lri.lost_id = lr_return.lost_id
              ORDER BY lri.image_id
              LIMIT 1)
         ) AS item_image_url,
@@ -162,7 +162,7 @@ BEGIN
              WHERE fri.found_id = fr.found_id),
             (SELECT ARRAY_AGG(lri.image_url)
              FROM Lost_Report_Images lri
-             WHERE lri.lost_id = COALESCE(lr_claim.lost_id, lr_return.lost_id))
+             WHERE lri.lost_id = lr_return.lost_id)
         ) AS item_image_urls,
         COALESCE(
             (SELECT ARRAY_AGG(cri.image_url)
@@ -178,10 +178,8 @@ BEGIN
     LEFT JOIN Users cu ON cr.requester_id = cu.user_id
     LEFT JOIN Users ru ON rr.requester_id = ru.user_id
     LEFT JOIN Found_Report fr ON cr.found_report_id = fr.found_id
-    LEFT JOIN Lost_Report lr_claim ON cr.lost_report_id = lr_claim.lost_id
     LEFT JOIN Lost_Report lr_return ON rr.lost_report_id = lr_return.lost_id
     LEFT JOIN Location fl ON fr.found_location_id = fl.location_id
-    LEFT JOIN Location ll_claim ON lr_claim.last_location_id = ll_claim.location_id
     LEFT JOIN Location ll_return ON lr_return.last_location_id = ll_return.location_id
     WHERE n.user_id = p_user_id
     ORDER BY n.created_at DESC, n.notification_id DESC;
@@ -337,7 +335,7 @@ BEGIN
         lr.title,
         lr.description,
         l.name AS location_name,
-        lr.lost_at AT TIME ZONE 'UTC' AS reported_at,
+        lr.lost_at AS reported_at,
         lr.status::TEXT AS status,
         (SELECT lri.image_url
          FROM Lost_Report_Images lri
@@ -364,7 +362,7 @@ BEGIN
         fr.title,
         fr.description,
         l.name AS location_name,
-        fr.found_at AT TIME ZONE 'UTC' AS reported_at,
+        fr.found_at AS reported_at,
         fr.status::TEXT AS status,
         (SELECT fri.image_url
          FROM Found_Report_Images fri
@@ -391,7 +389,7 @@ BEGIN
         fr.title,
         cr.message AS description,
         l.name AS location_name,
-        cr.claimed_at AT TIME ZONE 'UTC' AS reported_at,
+        cr.claimed_at AS reported_at,
         cr.status::TEXT AS status,
         (SELECT fri.image_url
          FROM Found_Report_Images fri
@@ -409,7 +407,6 @@ BEGIN
     JOIN Location l ON l.location_id = fr.found_location_id
     JOIN Users u ON u.user_id = fr.creator_id
     WHERE cr.requester_id = p_user_id
-      AND cr.found_report_id IS NOT NULL
 
     UNION ALL
 
@@ -420,7 +417,7 @@ BEGIN
         lr.title,
         rr.message AS description,
         l.name AS location_name,
-        rr.returned_at AT TIME ZONE 'UTC' AS reported_at,
+        rr.returned_at AS reported_at,
         rr.status::TEXT AS status,
         (SELECT lri.image_url
          FROM Lost_Report_Images lri

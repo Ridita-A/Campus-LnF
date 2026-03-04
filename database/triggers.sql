@@ -92,3 +92,86 @@ CREATE TRIGGER trigger_notify_return_request
 AFTER INSERT ON Return_Request
 FOR EACH ROW
 EXECUTE FUNCTION notify_return_request();
+
+
+-- Trigger to notify requesters when their claim request status is updated (accepted/rejected)
+CREATE OR REPLACE FUNCTION notify_claim_status_update()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_item_title VARCHAR(50);
+    v_owner_name VARCHAR(100);
+    v_status_action VARCHAR(20);
+BEGIN
+    -- Only trigger if status changed from pending to accepted/rejected
+    IF OLD.status = 'pending' AND NEW.status IN ('accepted', 'rejected') THEN
+        -- Get item title and owner name
+        -- Note: Claim_Request foreign key is to found_report_id natively now
+        SELECT title, u.name INTO v_item_title, v_owner_name
+        FROM Found_Report fr
+        JOIN Users u ON fr.creator_id = u.user_id
+        WHERE fr.found_id = NEW.found_report_id;
+
+        IF NEW.status = 'accepted' THEN
+            v_status_action := 'accepted';
+        ELSE
+            v_status_action := 'rejected';
+        END IF;
+
+        INSERT INTO Notification (user_id, claim_id, message, created_at)
+        VALUES (
+            NEW.requester_id,
+            NEW.claim_id,
+            v_owner_name || ' has ' || v_status_action || ' your claim for: ' || v_item_title,
+            NOW()
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_notify_claim_status_update ON Claim_Request;
+CREATE TRIGGER trigger_notify_claim_status_update
+AFTER UPDATE OF status ON Claim_Request
+FOR EACH ROW
+EXECUTE FUNCTION notify_claim_status_update();
+
+
+-- Trigger to notify requesters when their return request status is updated (accepted/rejected)
+CREATE OR REPLACE FUNCTION notify_return_status_update()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_item_title VARCHAR(50);
+    v_owner_name VARCHAR(100);
+    v_status_action VARCHAR(20);
+BEGIN
+    -- Only trigger if status changed from pending to accepted/rejected
+    IF OLD.status = 'pending' AND NEW.status IN ('accepted', 'rejected') THEN
+        -- Get item title and owner name
+        SELECT title, u.name INTO v_item_title, v_owner_name
+        FROM Lost_Report lr
+        JOIN Users u ON lr.creator_id = u.user_id
+        WHERE lr.lost_id = NEW.lost_report_id;
+
+        IF NEW.status = 'accepted' THEN
+            v_status_action := 'accepted';
+        ELSE
+            v_status_action := 'rejected';
+        END IF;
+
+        INSERT INTO Notification (user_id, return_id, message, created_at)
+        VALUES (
+            NEW.requester_id,
+            NEW.return_id,
+            v_owner_name || ' has ' || v_status_action || ' your return request for: ' || v_item_title,
+            NOW()
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_notify_return_status_update ON Return_Request;
+CREATE TRIGGER trigger_notify_return_status_update
+AFTER UPDATE OF status ON Return_Request
+FOR EACH ROW
+EXECUTE FUNCTION notify_return_status_update();

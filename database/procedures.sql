@@ -7,7 +7,7 @@ CREATE OR REPLACE PROCEDURE create_lost_report(
     p_last_location_id INT,
     p_title VARCHAR(50),
     p_description TEXT,
-    p_lost_at TIMESTAMPTZ,
+    p_lost_at TIMESTAMP,
     p_tags INT[],
     p_image_urls TEXT[]
 )
@@ -48,7 +48,7 @@ CREATE OR REPLACE PROCEDURE create_found_report(
     p_found_location_id INT,
     p_title VARCHAR(50),
     p_description TEXT,
-    p_found_at TIMESTAMPTZ,
+    p_found_at TIMESTAMP,
     p_tags INT[],
     p_image_urls TEXT[]
 )
@@ -260,9 +260,6 @@ BEGIN
         FROM Lost_Report lr JOIN Users u ON lr.creator_id = u.user_id WHERE lost_id = v_lost_id;
     END IF;
 
-    -- Notify requester
-    INSERT INTO Notification (user_id, claim_id, message)
-    VALUES (v_requester_id, p_claim_id, v_owner_name || ' has accepted your claim for: ' || v_item_title);
 END;
 $$;
 
@@ -286,9 +283,6 @@ BEGIN
     -- Update request status
     UPDATE Claim_Request SET status = 'rejected' WHERE claim_id = p_claim_id;
 
-    -- Notify requester
-    INSERT INTO Notification (user_id, claim_id, message)
-    VALUES (v_requester_id, p_claim_id, v_owner_name || ' has rejected your claim for: ' || v_item_title);
 END;
 $$;
 
@@ -316,9 +310,6 @@ BEGIN
     SELECT title, u.name INTO v_item_title, v_owner_name 
     FROM Lost_Report lr JOIN Users u ON lr.creator_id = u.user_id WHERE lost_id = v_lost_id;
 
-    -- Notify requester (the finder)
-    INSERT INTO Notification (user_id, return_id, message)
-    VALUES (v_requester_id, p_return_id, v_owner_name || ' has accepted your return request for: ' || v_item_title);
 END;
 $$;
 
@@ -341,9 +332,6 @@ BEGIN
     -- Update request status
     UPDATE Return_Request SET status = 'rejected' WHERE return_id = p_return_id;
 
-    -- Notify requester
-    INSERT INTO Notification (user_id, return_id, message)
-    VALUES (v_requester_id, p_return_id, v_owner_name || ' has rejected your return request for: ' || v_item_title);
 END;
 $$;
 

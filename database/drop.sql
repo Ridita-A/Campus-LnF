@@ -10,6 +10,8 @@ DROP FUNCTION IF EXISTS get_tags();
 DROP FUNCTION IF EXISTS set_created_at_timestamp();
 DROP FUNCTION IF EXISTS notify_claim_request();
 DROP FUNCTION IF EXISTS notify_return_request();
+DROP FUNCTION IF EXISTS notify_claim_status_update();
+DROP FUNCTION IF EXISTS notify_return_status_update();
 
 DROP PROCEDURE IF EXISTS create_claim_request_found(INT, INT, TEXT, TEXT[]);
 DROP PROCEDURE IF EXISTS create_return_request_lost(INT, INT, TEXT, TEXT[]);
@@ -18,8 +20,8 @@ DROP PROCEDURE IF EXISTS mark_notification_as_read(INT, INT);
 DROP PROCEDURE IF EXISTS archive_lost_report(INT);
 DROP PROCEDURE IF EXISTS archive_found_report(INT);
 DROP PROCEDURE IF EXISTS auto_archive_inactive_reports();
-DROP PROCEDURE IF EXISTS create_lost_report(INT, INT, VARCHAR, TEXT, TIMESTAMPTZ, INT[], TEXT[]);
-DROP PROCEDURE IF EXISTS create_found_report(INT, INT, VARCHAR, TEXT, TIMESTAMPTZ, INT[], TEXT[]);
+DROP PROCEDURE IF EXISTS create_lost_report(INT, INT, VARCHAR, TEXT, TIMESTAMP, INT[], TEXT[]);
+DROP PROCEDURE IF EXISTS create_found_report(INT, INT, VARCHAR, TEXT, TIMESTAMP, INT[], TEXT[]);
 
 -- DROP VIEWS
 DROP VIEW IF EXISTS vw_lost_reports;
